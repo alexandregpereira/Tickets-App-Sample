@@ -1,47 +1,52 @@
 package com.example.cielo
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import com.example.cielo.cielo.CieloResultBus
+import com.example.cielo.ui.TicketsNavHost
 import com.example.cielo.ui.theme.CieloSmartTheme
+import org.koin.android.ext.android.inject
 
+/**
+ * Única Activity do app: hospeda todo o Compose e recebe o retorno da Cielo Smart.
+ *
+ * A Cielo responde ao pagamento abrindo `order://response?response=<base64>&responsecode=0` como uma
+ * nova Intent ACTION_VIEW (ver https://docs.cielo.com.br/cielo-smart/docs/recuperando-dados). Com
+ * `launchMode="singleTop"` no manifest, essa Intent chega em [onNewIntent] sem recriar a Activity —
+ * os UiModels sobrevivem e conseguem reconciliar o pagamento em andamento.
+ */
 class MainActivity : ComponentActivity() {
+
+    private val cieloResultBus: CieloResultBus by inject()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // Cobre o caso em que o processo foi morto e a Intent de resposta recria a Activity.
+        publishCieloResponse(intent)
         setContent {
             CieloSmartTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                TicketsNavHost()
             }
         }
     }
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        publishCieloResponse(intent)
+    }
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    CieloSmartTheme {
-        Greeting("Android")
+    private fun publishCieloResponse(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_VIEW) return
+        val encodedResponse = intent.data?.getQueryParameter(QUERY_PARAM_RESPONSE) ?: return
+        cieloResultBus.post(encodedResponse)
+    }
+
+    private companion object {
+        const val QUERY_PARAM_RESPONSE = "response"
     }
 }

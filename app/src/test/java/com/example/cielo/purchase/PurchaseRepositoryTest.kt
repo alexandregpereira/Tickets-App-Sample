@@ -1,0 +1,98 @@
+package com.example.cielo.purchase
+
+import com.example.cielo.cielo.CieloPaymentCode
+import com.example.cielo.cielo.CieloPaymentError
+import com.example.cielo.cielo.CieloPaymentResult
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
+import org.junit.Test
+
+class PurchaseRepositoryTest {
+
+    private val repository = PurchaseRepository()
+
+    @Test
+    fun `starting twice with the same reference keeps a single purchase`() {
+        val first = repository.start(pendingPurchase(quantity = 2))
+        val second = repository.start(pendingPurchase(quantity = 5))
+
+        assertSame(first, second)
+        assertEquals(2, repository.find(REFERENCE)!!.quantity)
+    }
+
+    @Test
+    fun `records an approved result`() {
+        repository.start(pendingPurchase())
+
+        val purchase = repository.recordResult(REFERENCE, approved())!!
+
+        assertEquals(PurchaseStatus.APPROVED, purchase.status)
+        assertEquals("140126", purchase.authCode)
+        assertEquals("order-1", purchase.cieloOrderId)
+        assertEquals(24_000L, purchase.totalInCents)
+    }
+
+    @Test
+    fun `maps a cancellation and a denial to distinct statuses`() {
+        repository.start(pendingPurchase())
+        assertEquals(
+            PurchaseStatus.CANCELLED,
+            repository.recordResult(REFERENCE, failed(CieloPaymentError.CANCELLED_BY_USER))!!.status,
+        )
+
+        val other = PurchaseRepository()
+        other.start(pendingPurchase())
+        assertEquals(
+            PurchaseStatus.DENIED,
+            other.recordResult(REFERENCE, failed(CieloPaymentError.PAYMENT))!!.status,
+        )
+    }
+
+    @Test
+    fun `does not overwrite a purchase that already has a final outcome`() {
+        repository.start(pendingPurchase())
+        repository.recordResult(REFERENCE, approved())
+
+        // Entrega repetida da mesma Intent de resposta: não pode virar uma segunda cobrança.
+        val reapplied = repository.recordResult(REFERENCE, failed(CieloPaymentError.PAYMENT))!!
+
+        assertEquals(PurchaseStatus.APPROVED, reapplied.status)
+        assertEquals("140126", reapplied.authCode)
+        assertNull(reapplied.failureReason)
+    }
+
+    @Test
+    fun `ignores a result for an unknown reference`() {
+        assertNull(repository.recordResult("nao-existe", approved()))
+    }
+
+    private fun pendingPurchase(quantity: Int = 2) = Purchase(
+        reference = REFERENCE,
+        eventId = "evt-1",
+        eventName = "Festival de Verão",
+        quantity = quantity,
+        unitPriceInCents = 12_000,
+        paymentCode = CieloPaymentCode.CREDITO_AVISTA,
+        status = PurchaseStatus.PENDING,
+    )
+
+    private fun approved() = CieloPaymentResult.Approved(
+        orderId = "order-1",
+        reference = REFERENCE,
+        paidAmountInCents = 24_000,
+        authCode = "140126",
+        cieloCode = "799871",
+        brand = "Visa",
+        maskedCard = "424242-4242",
+        terminal = "69000007",
+        productName = "CREDITO A VISTA - I",
+    )
+
+    private fun failed(error: CieloPaymentError) =
+        CieloPaymentResult.Failed(error, reason = "motivo")
+
+    private companion object {
+        const val REFERENCE = "ref-1"
+    }
+}

@@ -2,7 +2,28 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!--
+      Obrigatório a partir do Android 11 (API 30) para que o app consiga enxergar e enviar Intents
+      ao serviço de integração da Cielo Smart.
+      https://docs.cielo.com.br/cielo-smart/docs/configurando-o-android-manifest
+    -->
+    <queries>
+        <package android:name="com.ads.lio.uriappclient" />
+        <!-- Pacote usado pelo Emulador Cielo para o mesmo contrato de deep link. -->
+        <package android:name="br.com.cielosmart.orderservice" />
+        <!--
+          Consulta por intent: garante que o app enxergue quem resolve o esquema lio://,
+          independentemente do pacote (emulador, terminal ou versões futuras).
+        -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+
+            <data android:scheme="lio" />
+        </intent>
+    </queries>
+
     <application
+        android:name=".CieloTicketsApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -11,16 +32,38 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.CieloSmart">
+
+        <!-- Identifica o app como integração por URI/deep link para a plataforma Cielo. -->
+        <meta-data
+            android:name="cs_integration_type"
+            android:value="uri" />
+
+        <!--
+          singleTop: o retorno da Cielo (order://response) chega em onNewIntent, sem recriar a
+          Activity nem destruir os UiModels que aguardam o resultado do pagamento.
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.CieloSmart"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Contrato de resposta acordado com a Cielo Smart (urlCallback do deep link). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data
+                    android:host="response"
+                    android:scheme="order" />
             </intent-filter>
         </activity>
     </application>
