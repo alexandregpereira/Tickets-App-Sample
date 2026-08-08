@@ -121,6 +121,42 @@ class CheckoutUiModelTest {
     }
 
     @Test
+    fun `releases the screen when returning from cielo without a response`() = runTest {
+        val uiModel = createUiModel().alsoLoaded()
+        uiModel.onPayClick()
+        assertTrue(uiModel.state.value.isPaymentInFlight)
+
+        // Voltar pelo botão do Android não gera callback nenhum da Cielo.
+        uiModel.onScreenResume()
+
+        assertFalse(uiModel.state.value.isPaymentInFlight)
+        assertTrue(uiModel.state.value.canPay)
+    }
+
+    @Test
+    fun `retrying after returning from cielo reuses the same reference`() = runTest {
+        val uiModel = createUiModel().alsoLoaded()
+        uiModel.onPayClick()
+        uiModel.onScreenResume()
+
+        uiModel.onPayClick()
+
+        assertEquals(2, launcher.uris.size)
+        assertEquals(launcher.uris[0].reference(), launcher.uris[1].reference())
+        assertEquals(1, purchaseRepository.referencesOf(launcher.uris.map { it.reference() }).size)
+    }
+
+    @Test
+    fun `resuming before any payment does nothing`() = runTest {
+        val uiModel = createUiModel().alsoLoaded()
+
+        uiModel.onScreenResume()
+
+        assertFalse(uiModel.state.value.isPaymentInFlight)
+        assertEquals(0, launcher.uris.size)
+    }
+
+    @Test
     fun `records the approval and navigates to the receipt`() = runTest {
         val uiModel = createUiModel().alsoLoaded()
         uiModel.onPayClick()

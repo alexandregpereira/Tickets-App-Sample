@@ -10,7 +10,7 @@ import androidx.core.net.toUri
  * Existe como interface para que o `StartPaymentUseCase` continue testável na JVM e para isolar a
  * única parte do fluxo de pagamento que toca o framework Android.
  */
-interface CieloCheckoutLauncher {
+fun interface CieloCheckoutLauncher {
     /** @throws android.content.ActivityNotFoundException se a Cielo Smart não estiver instalada. */
     fun launch(uri: String)
 }

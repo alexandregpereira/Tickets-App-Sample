@@ -68,6 +68,23 @@ class CheckoutUiModel(
 
     fun onErrorDismiss() = _state.update { it.copy(errorMessage = null) }
 
+    /**
+     * A tela voltou ao foreground.
+     *
+     * Sair da Cielo Smart pelo botão voltar não gera callback algum: sem isto, a tela ficaria presa
+     * em "aguardando pagamento" para sempre, com o botão de pagar desabilitado. Se houver um retorno
+     * publicado, ele está a caminho e quem decide é [observeCieloResponses]; caso contrário, o
+     * usuário desistiu e a tela é liberada para uma nova tentativa.
+     *
+     * A [pendingReference] é mantida de propósito: uma nova tentativa reaproveita a mesma chave de
+     * idempotência, então uma eventual cobrança que tenha ocorrido não se duplica.
+     */
+    fun onScreenResume() {
+        if (!_state.value.isPaymentInFlight) return
+        if (resultBus.hasPendingResponse()) return
+        _state.update { it.copy(isPaymentInFlight = false) }
+    }
+
     /** A UI avisa que já tratou a última ação, liberando o replay. */
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun onActionHandled() = _actions.resetReplayCache()
@@ -114,8 +131,10 @@ class CheckoutUiModel(
     private fun observeCieloResponses() {
         viewModelScope.launch {
             resultBus.responses.collect { encodedResponse ->
-                val reference = pendingReference ?: return@collect
+                // Consome sempre, inclusive um retorno sem compra correspondente: deixá-lo no cache
+                // faria [onScreenResume] achar para sempre que há um desfecho a caminho.
                 resultBus.consume()
+                val reference = pendingReference ?: return@collect
 
                 val result = responseParser.parse(encodedResponse)
                 purchaseRepository.recordResult(reference, result)

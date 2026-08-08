@@ -29,6 +29,14 @@ class CieloResultBus {
         _responses.tryEmit(encodedResponse)
     }
 
+    /**
+     * Há um retorno publicado e ainda não consumido.
+     *
+     * Permite distinguir "a Cielo respondeu e o resultado está a caminho" de "o usuário saiu da
+     * Cielo sem concluir", já que sair pelo botão voltar não gera nenhum callback.
+     */
+    fun hasPendingResponse(): Boolean = _responses.replayCache.isNotEmpty()
+
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun consume() {
         _responses.resetReplayCache()
