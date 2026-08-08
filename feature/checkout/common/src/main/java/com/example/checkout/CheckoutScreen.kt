@@ -39,7 +39,7 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun CheckoutScreen(
     eventId: String,
-    onNavigateToReceipt: (purchaseReference: String) -> Unit,
+    onNavigateToReceipt: (purchaseReference: String, isApproved: Boolean) -> Unit,
     onNavigateUp: () -> Unit,
 ) {
     val uiModel: CheckoutUiModel = koinViewModel { parametersOf(eventId) }
@@ -50,7 +50,8 @@ fun CheckoutScreen(
 
     CollectUiActions(uiModel.actions, onHandled = uiModel::onActionHandled) { action ->
         when (action) {
-            is CheckoutUiAction.NavigateToReceipt -> onNavigateToReceipt(action.purchaseReference)
+            is CheckoutUiAction.NavigateToReceipt ->
+                onNavigateToReceipt(action.purchaseReference, action.isApproved)
         }
     }
 

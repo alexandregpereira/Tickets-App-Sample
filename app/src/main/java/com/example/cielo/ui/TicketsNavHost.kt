@@ -35,7 +35,13 @@ fun TicketsNavHost(navController: NavHostController = rememberNavController()) {
         composable<CheckoutRoute> { backStackEntry ->
             CheckoutScreen(
                 eventId = backStackEntry.toRoute<CheckoutRoute>().eventId,
-                onNavigateToReceipt = { reference -> navController.navigate(ReceiptRoute(reference)) },
+                onNavigateToReceipt = { reference, isApproved ->
+                    navController.navigate(ReceiptRoute(reference)) {
+                        // Compra concluída: não há para onde voltar no checkout dela. Em recusa ou
+                        // cancelamento o checkout fica, para o usuário poder tentar de novo.
+                        if (isApproved) popUpTo<CheckoutRoute> { inclusive = true }
+                    }
+                },
                 onNavigateUp = { navController.popBackStack() },
             )
         }

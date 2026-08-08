@@ -7,6 +7,7 @@ import com.example.checkout.purchase.PurchaseRepository
 import com.example.checkout.purchase.PurchaseStatus
 import com.example.payment.core.PaymentItem
 import com.example.payment.core.PaymentOrder
+import com.example.payment.core.PaymentResult
 import com.example.payment.core.PaymentResultSource
 import com.example.payment.core.StartPaymentResult
 import com.example.payment.core.StartPaymentUseCase
@@ -28,12 +29,17 @@ import java.util.UUID
  * Não conhece adquirente nenhuma — fala só com `payment:core`. Trocar o meio de
  * pagamento não muda uma linha deste arquivo.
  *
+ * Invariante central: **uma tentativa, uma [pendingReference], uma compra**. Desistir da tentativa
+ * (voltar do app de pagamento, ou o pagamento nem abrir) descarta as três, para que a próxima
+ * tentativa parta do estado atual da tela — e não de um pedido que o usuário já abandonou.
+ *
  * Prevenção de cobrança duplicada, requisito explícito do case:
- * 1. [pendingReference] é gerada **uma única vez** por compra e reutilizada nas retentativas, então
- *    a adquirente enxerga sempre o mesmo pedido lógico;
- * 2. [onPayClick] é ignorado enquanto houver um pagamento em andamento;
- * 3. o [PurchaseRepository] ignora escritas sobre uma compra já finalizada, protegendo contra
- *    entregas repetidas do mesmo retorno.
+ * 1. [onPayClick] é ignorado enquanto houver um pagamento em andamento, então nunca há dois pedidos
+ *    abertos ao mesmo tempo;
+ * 2. a `reference` identifica o pedido na adquirente e só é descartada quando é certo que nenhuma
+ *    cobrança ocorreu — se houver um desfecho a caminho, [onScreenResume] não libera nada;
+ * 3. o [PurchaseRepository] ignora escritas sobre uma compra já finalizada e se recusa a descartá-la,
+ *    protegendo contra entregas repetidas do mesmo retorno.
  */
 internal class CheckoutUiModel(
     private val eventId: String,
@@ -78,8 +84,9 @@ internal class CheckoutUiModel(
      * retorno publicado, ele está a caminho e quem decide é [observePaymentResults]; caso contrário,
      * o usuário desistiu e a tela é liberada para uma nova tentativa.
      *
-     * A [pendingReference] é mantida de propósito: uma nova tentativa reaproveita a mesma chave de
-     * idempotência, então uma eventual cobrança que tenha ocorrido não se duplica.
+     * A compra pendente **não** é descartada aqui, e sim na próxima tentativa: o sistema pode
+     * entregar o `ON_RESUME` antes da Intent de retorno, e zerar a [pendingReference] neste ponto
+     * faria [observePaymentResults] descartar um desfecho legítimo que já estava a caminho.
      */
     fun onScreenResume() {
         if (!_state.value.isPaymentInFlight) return
@@ -97,9 +104,12 @@ internal class CheckoutUiModel(
         if (!current.canPay) return
         val event = current.event ?: return
 
-        val reference = pendingReference ?: UUID.randomUUID().toString().also {
-            pendingReference = it
-        }
+        // Toda tentativa começa do zero: a compra de uma tentativa abandonada é descartada aqui, e
+        // não no momento da desistência, porque só neste ponto é certo que nenhum desfecho está a
+        // caminho — `canPay` garante que não há pagamento em andamento.
+        abandonPendingPurchase()
+        val reference = UUID.randomUUID().toString()
+        pendingReference = reference
 
         // A compra é gravada **antes** de abrir o pagamento: se o processo for morto enquanto o app
         // de pagamento está em foreground, ainda existe um registro pendente ligado à `reference`.
@@ -118,11 +128,21 @@ internal class CheckoutUiModel(
         viewModelScope.launch {
             val result = startPayment(purchase.toPaymentOrder(event))
             if (result is StartPaymentResult.Failed) {
-                // O pagamento não abriu, então não houve cobrança: liberamos nova tentativa
-                // reaproveitando a mesma reference.
+                // O pagamento não chegou a abrir, então não houve cobrança: descartamos a compra e
+                // liberamos a tela para uma tentativa inteiramente nova.
+                abandonPendingPurchase()
                 _state.update { it.copy(isPaymentInFlight = false, errorMessage = result.reason) }
             }
         }
+    }
+
+    /**
+     * Descarta a compra de uma tentativa que não se concretizou e zera a `reference`, para que a
+     * tentativa seguinte parta do que está na tela — e não de um pedido que o usuário já abandonou.
+     */
+    private fun abandonPendingPurchase() {
+        pendingReference?.let(purchaseRepository::discard)
+        pendingReference = null
     }
 
     private fun Purchase.toPaymentOrder(event: Event) = PaymentOrder(
@@ -165,7 +185,12 @@ internal class CheckoutUiModel(
 
                 // Aprovada, negada ou cancelada, o desfecho é registrado e mostrado no comprovante
                 // — inclusive a recusa, que o case exige registrar e exibir.
-                _actions.emit(CheckoutUiAction.NavigateToReceipt(reference))
+                _actions.emit(
+                    CheckoutUiAction.NavigateToReceipt(
+                        purchaseReference = reference,
+                        isApproved = result is PaymentResult.Approved,
+                    )
+                )
             }
         }
     }

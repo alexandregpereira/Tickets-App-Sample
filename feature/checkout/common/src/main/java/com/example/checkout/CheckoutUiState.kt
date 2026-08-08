@@ -25,5 +25,12 @@ internal data class CheckoutUiState(
 }
 
 internal sealed interface CheckoutUiAction {
-    data class NavigateToReceipt(val purchaseReference: String) : CheckoutUiAction
+    /**
+     * @param isApproved permite à navegação decidir se o checkout ainda faz sentido na pilha: numa
+     * compra concluída não há para onde voltar, mas numa recusa o usuário precisa poder tentar de novo.
+     */
+    data class NavigateToReceipt(
+        val purchaseReference: String,
+        val isApproved: Boolean,
+    ) : CheckoutUiAction
 }

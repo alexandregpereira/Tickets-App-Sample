@@ -220,15 +220,24 @@ a `compileSdk` é uma edição só.
 
 Requisito explícito do case, resolvido em três camadas:
 
-1. **Chave de idempotência.** A `reference` enviada à Cielo é um UUID gerado **uma única vez** por
-   compra e reutilizado nas retentativas — a Cielo enxerga sempre o mesmo pedido lógico.
-2. **Trava de reentrada.** `onPayClick()` é ignorado enquanto `isPaymentInFlight` for verdadeiro, e o
-   botão fica desabilitado. Double tap não abre dois checkouts.
+1. **Trava de reentrada.** `onPayClick()` é ignorado enquanto `isPaymentInFlight` for verdadeiro, e o
+   botão fica desabilitado. Double tap não abre dois checkouts, e nunca há dois pedidos em aberto.
+2. **Uma tentativa, uma `reference`, uma compra.** Cada tentativa gera o seu próprio UUID, enviado à
+   Cielo e usado como identificador da compra. Uma tentativa abandonada é descartada por inteiro no
+   início da tentativa seguinte — assim o pedido enviado reflete sempre o que está na tela, e não um
+   carrinho que o usuário já mudou de ideia sobre.
 3. **Repositório idempotente.** `PurchaseRepository.recordResult()` ignora escritas sobre uma compra
-   que já tem desfecho definitivo. Protege contra reentrega da mesma Intent de resposta pelo Android.
+   que já tem desfecho definitivo, e `discard()` se recusa a remover uma: protege contra reentrega da
+   mesma Intent de resposta pelo Android e garante que uma venda registrada não some.
 
-A compra também é gravada como `PENDING` **antes** de abrir o deep link: se o processo morrer com a
-Cielo em foreground, ainda existe um registro associado à `reference` para reconciliar.
+A compra é gravada como `PENDING` **antes** de abrir o deep link: se o processo morrer com a Cielo em
+foreground, ainda existe um registro associado à `reference` para reconciliar.
+
+**Detalhe de ordenação que custou um bug:** o descarte da tentativa abandonada acontece no início do
+próximo `onPayClick()`, e não no momento em que o usuário volta. O Android pode entregar o `ON_RESUME`
+**antes** da Intent de retorno; zerar a `reference` ali fazia o desfecho legítimo que já estava a
+caminho ser descartado, e o comprovante nunca aparecia. No início de uma nova tentativa não há essa
+ambiguidade, porque `canPay` garante que nenhum pagamento está em andamento.
 
 ### Tratamento de erros
 
@@ -236,7 +245,7 @@ Nenhum caminho de erro deixa o usuário sem saber se foi cobrado:
 
 | Situação | Tratamento |
 | --- | --- |
-| Cielo Smart/Emulador não instalado | `ActivityNotFoundException` vira `StartPaymentResult.Failed`; card de erro com a orientação de instalar. Não houve cobrança, então a retentativa reaproveita a `reference` |
+| Cielo Smart/Emulador não instalado | `ActivityNotFoundException` vira `StartPaymentResult.Failed`; card de erro com a orientação de instalar. O checkout nem abriu, então não houve cobrança e a tentativa é descartada por inteiro |
 | Cancelado pelo usuário (`code` 1) | Compra registrada como `CANCELLED`, comprovante exibe o motivo |
 | Erro de pagamento/autenticação (`code` 3/4) | Compra registrada como `DENIED` com o motivo |
 | `response` ausente, Base64 inválido, JSON inválido | `CieloPaymentError.INVALID_RESPONSE`. O parser **nunca lança** — uma exceção aqui deixaria a compra em limbo |
@@ -258,7 +267,7 @@ são escritos à mão. Menos mágica no teste, mais legibilidade no code review.
 
 ## Testes automatizados
 
-`./gradlew testDebugUnitTest` — 37 testes, distribuídos pelos módulos que eles cobrem:
+`./gradlew testDebugUnitTest` — 42 testes, distribuídos pelos módulos que eles cobrem:
 
 **`:feature:payment:common`** — o protocolo da Cielo:
 
@@ -278,15 +287,18 @@ negócio, não o formato do fio, que é coberto pelos testes de `:feature:paymen
 
 - **`CheckoutUiModelTest`** — quantidade limitada entre 1 e 10, recálculo do total, `PaymentOrder`
   enviado com a quantidade e o valor corretos, compra gravada como `PENDING` antes de iniciar o
-  pagamento, **o segundo toque em Pagar é ignorado**, **a retentativa reusa a mesma `reference`**
-  (tanto após falha ao abrir quanto após voltar sem desfecho), **voltar do app de pagamento sem
-  retorno libera a tela**, aprovação e cancelamento registrados e navegando para o comprovante, e
-  **resultado repetido não altera uma compra já concluída**.
+  pagamento, **o segundo toque em Pagar é ignorado**, **voltar do app de pagamento sem retorno libera
+  a tela** mantendo a compra pendente (um desfecho tardio ainda precisa achá-la), **mudar a
+  quantidade depois de voltar envia o novo total** e descarta a tentativa anterior, o mesmo após
+  falha ao abrir o pagamento, aprovação e cancelamento registrados e navegando para o comprovante com
+  o `isApproved` correto, e **resultado repetido não altera uma compra já concluída**.
 - **`CheckoutUiModelResumeRaceTest`** — a corrida entre o retorno do pagamento e o `ON_RESUME` da
-  tela: com um desfecho publicado e ainda não processado a tela segue aguardando, e um retorno sem
-  compra correspondente não trava liberações futuras.
+  tela: com um desfecho publicado e ainda não processado a tela segue aguardando, **um desfecho que
+  chega depois da tela ser liberada ainda é registrado**, e um retorno sem compra correspondente não
+  trava liberações futuras.
 - **`PurchaseRepositoryTest`** — idempotência de `start` e `recordResult`, mapeamento de
-  cancelamento/recusa, resultado para referência desconhecida.
+  cancelamento/recusa, resultado para referência desconhecida, e `discard` removendo uma compra
+  pendente mas **nunca** uma com desfecho definitivo.
 
 **`:feature:shop:common`**
 

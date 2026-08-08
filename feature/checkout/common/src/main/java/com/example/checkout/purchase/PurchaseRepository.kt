@@ -19,11 +19,27 @@ internal class PurchaseRepository {
     private val purchases = ConcurrentHashMap<String, Purchase>()
 
     /**
-     * Registra a compra como [PurchaseStatus.PENDING]. Se a referência já existir — retentativa de
-     * um pagamento que falhou — devolve o registro existente sem sobrescrevê-lo.
+     * Registra a compra como [PurchaseStatus.PENDING].
+     *
+     * Nunca sobrescreve um registro existente: cada tentativa de pagamento tem a sua própria
+     * `reference`, então uma colisão só aconteceria por chamada duplicada da mesma tentativa.
      */
     fun start(purchase: Purchase): Purchase =
         purchases.putIfAbsent(purchase.reference, purchase) ?: purchase
+
+    /**
+     * Remove uma compra ainda pendente, quando a tentativa é abandonada antes de qualquer cobrança
+     * — o usuário saiu do app de pagamento sem concluir, ou o pagamento nem chegou a abrir.
+     *
+     * Compras com desfecho definitivo **nunca** são removidas: elas são o registro da venda.
+     *
+     * @return `true` se havia uma compra pendente e ela foi descartada.
+     */
+    fun discard(reference: String): Boolean {
+        val current = purchases[reference] ?: return false
+        if (current.status.isTerminal) return false
+        return purchases.remove(reference, current)
+    }
 
     /**
      * Aplica o desfecho do pagamento à compra.

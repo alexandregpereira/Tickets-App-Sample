@@ -53,6 +53,24 @@ class CheckoutUiModelResumeRaceTest {
     }
 
     @Test
+    fun `a result delivered after the screen was released still reaches the receipt`() = runTest {
+        val uiModel = createUiModel()
+        advanceUntilIdle()
+        uiModel.onPayClick()
+        advanceUntilIdle()
+        val reference = startPayment.launchedOrders.single().reference
+
+        // O sistema pode entregar o ON_RESUME antes da Intent de retorno: a tela é liberada, mas o
+        // desfecho ainda está a caminho e não pode ser perdido.
+        uiModel.onScreenResume()
+        advanceUntilIdle()
+        paymentResultSource.post(approvedResult(reference))
+        advanceUntilIdle()
+
+        assertEquals(PurchaseStatus.APPROVED, purchaseRepository.find(reference)!!.status)
+    }
+
+    @Test
     fun `an unmatched result does not block a later release`() = runTest {
         val uiModel = createUiModel()
         advanceUntilIdle()

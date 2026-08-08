@@ -11,6 +11,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -94,7 +95,7 @@ class CheckoutUiModelTest {
     }
 
     @Test
-    fun `reuses the same reference when retrying after a launch failure`() = runTest {
+    fun `starts a fresh purchase when retrying after a launch failure`() = runTest {
         startPayment.failNextPayment = true
         val uiModel = createUiModel().alsoLoaded()
 
@@ -106,9 +107,11 @@ class CheckoutUiModelTest {
 
         assertEquals(2, startPayment.orders.size)
         val references = startPayment.orders.map { it.reference }
-        assertEquals(references[0], references[1])
-        // Uma única compra registrada, apesar das duas tentativas.
-        assertEquals(1, references.distinct().mapNotNull(purchaseRepository::find).size)
+        // O pagamento nem abriu, então não houve cobrança: a tentativa anterior é descartada por
+        // inteiro e a nova parte do zero.
+        assertNotEquals(references[0], references[1])
+        assertNull(purchaseRepository.find(references[0]))
+        assertNotNull(purchaseRepository.find(references[1]))
     }
 
     @Test
@@ -125,17 +128,42 @@ class CheckoutUiModelTest {
     }
 
     @Test
-    fun `retrying after returning from the payment app reuses the same reference`() = runTest {
+    fun `sends the updated quantity after returning from the payment app`() = runTest {
         val uiModel = createUiModel().alsoLoaded()
         uiModel.onPayClick()
-        uiModel.onScreenResume()
 
+        // O usuário volta do app de pagamento sem concluir e muda de ideia sobre a quantidade.
+        uiModel.onScreenResume()
+        uiModel.onIncreaseQuantityClick()
         uiModel.onPayClick()
 
         assertEquals(2, startPayment.launchedOrders.size)
-        val references = startPayment.launchedOrders.map { it.reference }
-        assertEquals(references[0], references[1])
-        assertEquals(1, references.distinct().mapNotNull(purchaseRepository::find).size)
+        val (first, second) = startPayment.launchedOrders
+        assertEquals(12_000L, first.totalInCents)
+        assertEquals(24_000L, second.totalInCents)
+        assertEquals(2, second.items.single().quantity)
+
+        // Tentativa nova, pedido novo: a compra abandonada não pode continuar registrada.
+        assertNotEquals(first.reference, second.reference)
+        assertNull(purchaseRepository.find(first.reference))
+        assertEquals(2, purchaseRepository.find(second.reference)!!.quantity)
+    }
+
+    @Test
+    fun `keeps the pending purchase on resume so a late result is not lost`() = runTest {
+        val uiModel = createUiModel().alsoLoaded()
+        uiModel.onPayClick()
+        val reference = startPayment.launchedOrders.single().reference
+
+        uiModel.onScreenResume()
+
+        // O desfecho pode chegar logo depois: descartar aqui perderia o resultado. A compra
+        // abandonada só sai do repositório quando uma nova tentativa começa.
+        assertNotNull(purchaseRepository.find(reference))
+
+        uiModel.onPayClick()
+
+        assertNull(purchaseRepository.find(reference))
     }
 
     @Test
@@ -157,7 +185,11 @@ class CheckoutUiModelTest {
         uiModel.actions.test {
             paymentResultSource.post(approvedResult(reference))
 
-            assertEquals(CheckoutUiAction.NavigateToReceipt(reference), awaitItem())
+            // isApproved = true faz a navegação remover o checkout da pilha.
+            assertEquals(
+                CheckoutUiAction.NavigateToReceipt(reference, isApproved = true),
+                awaitItem(),
+            )
         }
 
         val purchase = purchaseRepository.find(reference)!!
@@ -178,7 +210,11 @@ class CheckoutUiModelTest {
                 PaymentResult.Failed(PaymentError.CANCELLED_BY_USER, "CANCELADO PELO USUÁRIO")
             )
 
-            assertEquals(CheckoutUiAction.NavigateToReceipt(reference), awaitItem())
+            // isApproved = false mantém o checkout na pilha, para o usuário tentar de novo.
+            assertEquals(
+                CheckoutUiAction.NavigateToReceipt(reference, isApproved = false),
+                awaitItem(),
+            )
         }
 
         val purchase = purchaseRepository.find(reference)!!

@@ -3,8 +3,10 @@ package com.example.checkout.purchase
 import com.example.payment.core.PaymentError
 import com.example.payment.core.PaymentResult
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PurchaseRepositoryTest {
@@ -61,6 +63,31 @@ class PurchaseRepositoryTest {
         assertEquals(PurchaseStatus.APPROVED, reapplied.status)
         assertEquals("140126", reapplied.authorizationCode)
         assertNull(reapplied.failureReason)
+    }
+
+    @Test
+    fun `discards a pending purchase`() {
+        repository.start(pendingPurchase())
+
+        assertTrue(repository.discard(REFERENCE))
+
+        assertNull(repository.find(REFERENCE))
+    }
+
+    @Test
+    fun `refuses to discard a purchase that already has a final outcome`() {
+        repository.start(pendingPurchase())
+        repository.recordResult(REFERENCE, approved())
+
+        // Descarte é para tentativa abandonada; uma venda registrada não pode sumir.
+        assertFalse(repository.discard(REFERENCE))
+
+        assertEquals(PurchaseStatus.APPROVED, repository.find(REFERENCE)!!.status)
+    }
+
+    @Test
+    fun `discarding an unknown reference is a no-op`() {
+        assertFalse(repository.discard("nao-existe"))
     }
 
     @Test
