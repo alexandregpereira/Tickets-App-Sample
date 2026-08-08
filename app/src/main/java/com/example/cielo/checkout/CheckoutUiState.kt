@@ -1,13 +1,11 @@
 package com.example.cielo.checkout
 
-import com.example.cielo.cielo.CieloPaymentCode
 import com.example.cielo.event.Event
 
 data class CheckoutUiState(
     val isLoading: Boolean = true,
     val event: Event? = null,
     val quantity: Int = MIN_QUANTITY,
-    val paymentCode: CieloPaymentCode = CieloPaymentCode.CREDITO_AVISTA,
     /** Verdadeiro entre abrir o checkout da Cielo e receber o `order://response`. */
     val isPaymentInFlight: Boolean = false,
     val errorMessage: String? = null,

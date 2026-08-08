@@ -76,9 +76,34 @@ class CieloResponseParser(
             brand = payment["brand"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() },
             maskedCard = payment["mask"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() },
             terminal = payment["terminal"]?.jsonPrimitive?.content,
-            productName = paymentFields?.get("productName")?.jsonPrimitive?.content,
+            paymentDescription = paymentFields.paymentDescription(),
         )
     }
+
+    /**
+     * Monta a descrição da forma de pagamento escolhida no terminal.
+     *
+     * Prioriza `primaryProductName` + `secondaryProductName` ("CREDITO" + "A VISTA") em vez de
+     * `productName`: embora a documentação descreva `productName` como a "forma de pagamento
+     * compilada", o Emulador Cielo devolve nele um texto fixo de mock, enquanto os dois campos de
+     * produto refletem de fato a escolha do portador.
+     *
+     * Quando o nome secundário já começa pelo primário — "CREDITO" + "CREDITO VISTA", como no
+     * emulador — usa só o secundário, para não repetir a palavra.
+     */
+    private fun JsonObject?.paymentDescription(): String? {
+        val primary = this?.text("primaryProductName")
+        val secondary = this?.text("secondaryProductName")
+        return when {
+            primary == null -> secondary ?: this?.text("productName")
+            secondary == null -> primary
+            secondary.startsWith(primary, ignoreCase = true) -> secondary
+            else -> "$primary $secondary"
+        }
+    }
+
+    private fun JsonObject.text(key: String): String? =
+        this[key]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
 
     private fun invalid(reason: String) =
         CieloPaymentResult.Failed(CieloPaymentError.INVALID_RESPONSE, reason)

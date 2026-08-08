@@ -4,7 +4,6 @@ import android.content.ActivityNotFoundException
 import com.example.cielo.cielo.CieloCheckoutLauncher
 import com.example.cielo.cielo.CieloCredentials
 import com.example.cielo.cielo.CieloDeepLinkBuilder
-import com.example.cielo.cielo.CieloPaymentCode
 import com.example.cielo.cielo.CieloPaymentError
 import com.example.cielo.cielo.CieloPaymentItem
 import com.example.cielo.cielo.CieloPaymentRequest
@@ -31,7 +30,6 @@ class StartPaymentUseCase(
         reference: String,
         event: Event,
         quantity: Int,
-        paymentCode: CieloPaymentCode,
     ): StartPaymentResult {
         val purchase = purchaseRepository.start(
             Purchase(
@@ -40,7 +38,6 @@ class StartPaymentUseCase(
                 eventName = event.name,
                 quantity = quantity,
                 unitPriceInCents = event.priceInCents,
-                paymentCode = paymentCode,
                 status = PurchaseStatus.PENDING,
             )
         )
@@ -57,7 +54,6 @@ class StartPaymentUseCase(
                     unitPrice = purchase.unitPriceInCents,
                 )
             ),
-            paymentCode = paymentCode.value,
             value = purchase.totalInCents.toString(),
         )
 

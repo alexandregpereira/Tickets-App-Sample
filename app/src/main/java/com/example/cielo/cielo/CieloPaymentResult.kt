@@ -15,7 +15,12 @@ sealed interface CieloPaymentResult {
         val brand: String?,
         val maskedCard: String?,
         val terminal: String?,
-        val productName: String?,
+        /**
+         * Forma de pagamento efetivamente escolhida pelo portador na tela da Cielo Smart —
+         * ex.: "CREDITO A VISTA", "DEBITO VISTA", "PIX PAGAMENTO". O app não a define na requisição,
+         * então este é o único lugar de onde ela pode vir.
+         */
+        val paymentDescription: String?,
     ) : CieloPaymentResult
 
     /**

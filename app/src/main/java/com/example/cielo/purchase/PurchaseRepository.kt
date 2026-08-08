@@ -44,6 +44,7 @@ class PurchaseRepository {
                 brand = result.brand,
                 maskedCard = result.maskedCard,
                 terminal = result.terminal,
+                paymentDescription = result.paymentDescription,
             )
 
             is CieloPaymentResult.Failed -> current.copy(

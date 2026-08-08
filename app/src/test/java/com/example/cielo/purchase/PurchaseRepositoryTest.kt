@@ -1,6 +1,5 @@
 package com.example.cielo.purchase
 
-import com.example.cielo.cielo.CieloPaymentCode
 import com.example.cielo.cielo.CieloPaymentError
 import com.example.cielo.cielo.CieloPaymentResult
 import org.junit.Assert.assertEquals
@@ -31,6 +30,8 @@ class PurchaseRepositoryTest {
         assertEquals("140126", purchase.authCode)
         assertEquals("order-1", purchase.cieloOrderId)
         assertEquals(24_000L, purchase.totalInCents)
+        // A forma de pagamento só é conhecida depois: quem escolhe é o portador, no terminal.
+        assertEquals("CREDITO A VISTA", purchase.paymentDescription)
     }
 
     @Test
@@ -73,7 +74,6 @@ class PurchaseRepositoryTest {
         eventName = "Festival de Verão",
         quantity = quantity,
         unitPriceInCents = 12_000,
-        paymentCode = CieloPaymentCode.CREDITO_AVISTA,
         status = PurchaseStatus.PENDING,
     )
 
@@ -86,7 +86,7 @@ class PurchaseRepositoryTest {
         brand = "Visa",
         maskedCard = "424242-4242",
         terminal = "69000007",
-        productName = "CREDITO A VISTA - I",
+        paymentDescription = "CREDITO A VISTA",
     )
 
     private fun failed(error: CieloPaymentError) =

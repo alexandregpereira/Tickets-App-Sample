@@ -2,7 +2,6 @@ package com.example.cielo.checkout
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.cielo.cielo.CieloPaymentCode
 import com.example.cielo.cielo.CieloResponseParser
 import com.example.cielo.cielo.CieloResultBus
 import com.example.cielo.event.GetEventUseCase
@@ -62,10 +61,6 @@ class CheckoutUiModel(
         if (it.canDecreaseQuantity) it.copy(quantity = it.quantity - 1) else it
     }
 
-    fun onPaymentCodeSelect(paymentCode: CieloPaymentCode) = _state.update {
-        if (it.isPaymentInFlight) it else it.copy(paymentCode = paymentCode)
-    }
-
     fun onErrorDismiss() = _state.update { it.copy(errorMessage = null) }
 
     /**
@@ -105,7 +100,6 @@ class CheckoutUiModel(
                 reference = reference,
                 event = event,
                 quantity = current.quantity,
-                paymentCode = current.paymentCode,
             )
             if (result is StartPaymentResult.Failed) {
                 // O checkout da Cielo não abriu, então não houve cobrança: liberamos nova tentativa

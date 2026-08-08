@@ -130,7 +130,7 @@ private fun PurchaseSummary(purchase: Purchase) {
             SummaryRow("Quantidade", purchase.quantity.toString())
             SummaryRow("Valor unitário", purchase.unitPriceInCents.formatAsBrl())
             SummaryRow("Total", purchase.totalInCents.formatAsBrl(), emphasize = true)
-            SummaryRow("Forma de pagamento", purchase.paymentCode.label)
+            purchase.paymentDescription?.let { SummaryRow("Forma de pagamento", it) }
             SummaryRow("Referência", purchase.reference)
             purchase.cieloOrderId?.takeIf { it.isNotBlank() }?.let { SummaryRow("Pedido Cielo", it) }
             purchase.authCode?.let { SummaryRow("Autorização", it) }

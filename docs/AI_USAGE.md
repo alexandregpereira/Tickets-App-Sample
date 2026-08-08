@@ -52,12 +52,12 @@ implementação seguiu as respostas:
 | --- | --- |
 | Como atender aos requisitos 4 e 5 (registrar desfecho e exibir comprovante) com 2 telas? | Adicionar uma **terceira tela** de comprovante |
 | QR Code e/ou persistência com Room? | **Nenhum dos dois** — repositório em memória |
-| Como escolher o `paymentCode`? | **Seletor** na tela de checkout (Crédito / Débito / Pix) |
+| Como escolher o `paymentCode`? | O app **não envia** o campo: a forma de pagamento é escolhida na tela da própria Cielo Smart |
 | Quão longe ir nos testes? | Testes unitários de UiModel, builder do deep link, parser e guarda de duplicidade; **sem** testes instrumentados |
 
 ## Resultados que orientaram a implementação
 
-Dois achados da verificação mudaram o código — vale registrar porque nenhum deles apareceria sem
+Três achados da verificação mudaram o código — vale registrar porque nenhum deles apareceria sem
 executar de verdade:
 
 **1. A ação de navegação se perdia no retorno da Cielo.** No primeiro teste ponta a ponta contra o
@@ -73,13 +73,19 @@ a ação emitida nesse intervalo num `SharedFlow` sem replay era descartada. Cor
 declarar os dois pacotes **e** uma consulta por intent no esquema `lio://`, que não depende do nome do
 pacote.
 
-Ambos os cenários — aprovado e cancelado — foram depois validados ponta a ponta contra o Emulador
-Cielo, e os 26 testes unitários passam.
+**3. Tela presa ao voltar da Cielo.** Sair da Cielo Smart pelo botão voltar não gera callback nenhum,
+então o checkout ficava para sempre em "aguardando pagamento", com o botão desabilitado. Correção:
+liberar a tela no `ON_RESUME` — mas só quando não houver um retorno publicado e ainda não processado,
+porque `onNewIntent` e `onResume` acontecem na mesma passagem pela main thread e liberar sem essa
+guarda faria a tela piscar de volta ao estado ocioso um instante antes de navegar para o comprovante.
+
+Os cenários de aprovação, cancelamento e volta sem callback foram validados ponta a ponta contra o
+Emulador Cielo, e os 35 testes unitários passam.
 
 ## O que a IA *não* decidiu
 
 - A arquitetura (MVI, Koin, Compose, uma Activity) foi imposta, não sugerida.
-- O escopo (3 telas, sem Room, sem QR, seletor de pagamento, profundidade dos testes) foi escolhido
+- O escopo (3 telas, sem Room, sem QR, sem seletor de pagamento, profundidade dos testes) foi escolhido
   pelo humano a partir das opções apresentadas.
 - O protocolo da Cielo não foi inventado: cada campo, código de erro e requisito de manifest tem uma
   página da documentação oficial como origem, citada no código e no README.

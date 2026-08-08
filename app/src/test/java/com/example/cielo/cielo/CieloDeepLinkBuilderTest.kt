@@ -5,6 +5,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -49,12 +50,12 @@ class CieloDeepLinkBuilderTest {
     }
 
     @Test
-    fun `sends the selected payment code`() {
-        CieloPaymentCode.entries.forEach { code ->
-            val uri = builder.buildPaymentUri(request(paymentCode = code))
+    fun `omits the payment code so the shopper chooses on the cielo screen`() {
+        val uri = builder.buildPaymentUri(request())
 
-            assertEquals(code.value, uri.decodedRequest()["paymentCode"]!!.jsonPrimitive.content)
-        }
+        // `paymentCode` é opcional na documentação: sem ele, a Cielo Smart exibe a seleção da forma
+        // de pagamento no próprio terminal.
+        assertNull(uri.decodedRequest()["paymentCode"])
     }
 
     private fun String.decodedRequest() = substringAfter("request=")
@@ -68,7 +69,6 @@ class CieloDeepLinkBuilderTest {
         quantity: Int = 1,
         unitPriceInCents: Long = 1_000,
         totalInCents: Long = 1_000,
-        paymentCode: CieloPaymentCode = CieloPaymentCode.CREDITO_AVISTA,
     ) = CieloPaymentRequest(
         accessToken = accessToken,
         clientId = clientId,
@@ -81,7 +81,6 @@ class CieloDeepLinkBuilderTest {
                 unitPrice = unitPriceInCents,
             )
         ),
-        paymentCode = paymentCode.value,
         value = totalInCents.toString(),
     )
 }

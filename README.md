@@ -3,7 +3,7 @@
 App Android de venda de ingressos para eventos locais, com pagamento pelo ecossistema
 **Cielo Smart / Cielo LIO** via integração local por deep link.
 
-Fluxo: **listar eventos → escolher quantidade e forma de pagamento → pagar na Cielo → registrar o
+Fluxo: **listar eventos → escolher a quantidade → pagar na Cielo → registrar o
 desfecho → exibir o comprovante**.
 
 ## Como executar
@@ -39,7 +39,7 @@ mesmo dispositivo. Para transacionar sem um terminal físico:
    https://docs.cielo.com.br/cielo-smart/docs/baixando-o-emulador-cielo
 2. Instale-o no mesmo AVD do app (o emulador é suportado até o Android 10; não deve ser instalado em
    um terminal Smart real).
-3. Abra o app, escolha um evento, a quantidade e a forma de pagamento e toque em **Pagar com Cielo**.
+3. Abra o app, escolha um evento e a quantidade e toque em **Pagar com Cielo**.
    O Emulador Cielo abre com o valor já preenchido e permite simular **Sucesso**, **Cancelado** ou
    **Erro**.
 
@@ -71,8 +71,8 @@ dispensa SDK.
 lio://payment?request=<base64>&urlCallback=order://response
 ```
 
-O JSON carrega `accessToken`, `clientID`, `reference`, `items[]`, `paymentCode` e `value` — todos os
-valores monetários em **centavos inteiros**. Montado por
+O JSON carrega `accessToken`, `clientID`, `reference`, `items[]` e `value` — todos os valores
+monetários em **centavos inteiros**. Montado por
 [CieloDeepLinkBuilder](app/src/main/java/com/example/cielo/cielo/CieloDeepLinkBuilder.kt).
 
 **2. Manifest.** Três configurações obrigatórias em
@@ -96,7 +96,11 @@ sobrevivem. A `MainActivity` extrai o parâmetro `response` e publica no
 [CieloResponseParser](app/src/main/java/com/example/cielo/cielo/CieloResponseParser.kt) interpreta.
 
 O payload de sucesso é o pedido pago, com `payments[].authCode`, `cieloCode`, `mask`, `terminal` e
-`paymentFields.statusCode` (`0` Pix, `1` autorizada, `2` cancelada). O de erro é
+`paymentFields.statusCode` (`0` Pix, `1` autorizada, `2` cancelada). É de lá que sai também a
+**forma de pagamento escolhida no terminal**, exibida no comprovante: como o app não envia
+`paymentCode`, `paymentFields.primaryProductName` + `secondaryProductName` são a única fonte dessa
+informação. A documentação descreve `productName` como a forma "compilada", mas o Emulador Cielo
+devolve nesse campo um texto fixo de mock, então ele é só fallback. O de erro é
 `{"code": N, "reason": "..."}`, com `1` cancelado pelo usuário, `2` genérico, `3` erro de pagamento e
 `4` erro de autenticação.
 
@@ -178,18 +182,22 @@ são escritos à mão. Menos mágica no teste, mais legibilidade no code review.
 
 ## Testes automatizados
 
-`./gradlew :app:testDebugUnitTest` — 26 testes cobrindo os cenários críticos:
+`./gradlew :app:testDebugUnitTest` — 35 testes cobrindo os cenários críticos:
 
 - **`CieloDeepLinkBuilderTest`** — esquema/host/params da URI, round-trip Base64, valores em
-  centavos, propagação da `reference`, cada `paymentCode`.
+  centavos, propagação da `reference` e ausência do `paymentCode`.
 - **`CieloResponseParserTest`** — pedido aprovado (com um recorte do payload real da documentação),
-  cada código de erro 1–4, `statusCode` 2 como cancelamento, pedido sem transação, e resposta
-  ausente/malformada/não-JSON sem lançar exceção.
+  cada código de erro 1–4, `statusCode` 2 como cancelamento, pedido sem transação, resposta
+  ausente/malformada/não-JSON sem lançar exceção, e a descrição da forma de pagamento escolhida no
+  terminal (formato da documentação, formato do emulador, fallback e ausência).
 - **`CheckoutUiModelTest`** — quantidade limitada entre 1 e 10, recálculo do total, deep link com a
-  quantidade e o meio de pagamento corretos, compra gravada como `PENDING` antes do checkout, **o
-  segundo toque em Pagar é ignorado**, **a retentativa reusa a mesma `reference`**, aprovação e
-  cancelamento registrados e navegando para o comprovante, e **resposta repetida não altera uma
-  compra já concluída**.
+  quantidade correta e sem `paymentCode`, compra gravada como `PENDING` antes do checkout, **o segundo toque em Pagar é
+  ignorado**, **a retentativa reusa a mesma `reference`**, **voltar da Cielo sem callback libera a
+  tela**, aprovação e cancelamento registrados e navegando para o comprovante, e **resposta repetida
+  não altera uma compra já concluída**.
+- **`CheckoutUiModelResumeRaceTest`** — a corrida entre o retorno da Cielo e o `ON_RESUME` da tela:
+  com um desfecho publicado e ainda não processado a tela segue aguardando, e um retorno sem compra
+  correspondente não trava liberações futuras.
 - **`PurchaseRepositoryTest`** — idempotência de `start` e `recordResult`, mapeamento de
   cancelamento/recusa, resultado para referência desconhecida.
 - **`EventListUiModelTest`** — transição de carregamento para conteúdo e ação de navegação.

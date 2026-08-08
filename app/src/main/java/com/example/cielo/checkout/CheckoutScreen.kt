@@ -15,7 +15,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.cielo.cielo.CieloPaymentCode
 import com.example.cielo.ui.CollectUiActions
 import com.example.cielo.ui.formatAsBrl
 import org.koin.androidx.compose.koinViewModel
@@ -61,7 +59,6 @@ fun CheckoutScreen(
         onNavigateUp = onNavigateUp,
         onIncreaseClick = uiModel::onIncreaseQuantityClick,
         onDecreaseClick = uiModel::onDecreaseQuantityClick,
-        onPaymentCodeSelect = uiModel::onPaymentCodeSelect,
         onPayClick = uiModel::onPayClick,
         onErrorDismiss = uiModel::onErrorDismiss,
     )
@@ -74,7 +71,6 @@ private fun CheckoutContent(
     onNavigateUp: () -> Unit,
     onIncreaseClick: () -> Unit,
     onDecreaseClick: () -> Unit,
-    onPaymentCodeSelect: (CieloPaymentCode) -> Unit,
     onPayClick: () -> Unit,
     onErrorDismiss: () -> Unit,
 ) {
@@ -121,12 +117,6 @@ private fun CheckoutContent(
                 canIncrease = state.canIncreaseQuantity,
                 onDecreaseClick = onDecreaseClick,
                 onIncreaseClick = onIncreaseClick,
-            )
-
-            PaymentCodeSelector(
-                selected = state.paymentCode,
-                enabled = !state.isPaymentInFlight,
-                onSelect = onPaymentCodeSelect,
             )
 
             HorizontalDivider()
@@ -196,28 +186,6 @@ private fun QuantitySelector(
                 modifier = Modifier.padding(horizontal = 12.dp),
             )
             IconButton(onClick = onIncreaseClick, enabled = canIncrease) { Text("+") }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PaymentCodeSelector(
-    selected: CieloPaymentCode,
-    enabled: Boolean,
-    onSelect: (CieloPaymentCode) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Forma de pagamento", style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CieloPaymentCode.entries.forEach { code ->
-                FilterChip(
-                    selected = code == selected,
-                    enabled = enabled,
-                    onClick = { onSelect(code) },
-                    label = { Text(code.label) },
-                )
-            }
         }
     }
 }

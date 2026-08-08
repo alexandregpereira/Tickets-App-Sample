@@ -1,7 +1,5 @@
 package com.example.cielo.purchase
 
-import com.example.cielo.cielo.CieloPaymentCode
-
 /**
  * Registro de uma tentativa de compra de ingressos e seu desfecho.
  *
@@ -15,7 +13,6 @@ data class Purchase(
     val eventName: String,
     val quantity: Int,
     val unitPriceInCents: Long,
-    val paymentCode: CieloPaymentCode,
     val status: PurchaseStatus,
     val cieloOrderId: String? = null,
     val authCode: String? = null,
@@ -23,6 +20,8 @@ data class Purchase(
     val brand: String? = null,
     val maskedCard: String? = null,
     val terminal: String? = null,
+    /** Forma de pagamento escolhida pelo portador na Cielo Smart, conhecida só após a transação. */
+    val paymentDescription: String? = null,
     val failureReason: String? = null,
 ) {
     val totalInCents: Long get() = unitPriceInCents * quantity

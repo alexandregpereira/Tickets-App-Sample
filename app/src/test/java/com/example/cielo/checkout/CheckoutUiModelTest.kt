@@ -6,7 +6,6 @@ import com.example.cielo.MainDispatcherRule
 import com.example.cielo.cielo.CieloCheckoutLauncher
 import com.example.cielo.cielo.CieloCredentials
 import com.example.cielo.cielo.CieloDeepLinkBuilder
-import com.example.cielo.cielo.CieloPaymentCode
 import com.example.cielo.cielo.CieloResponseParser
 import com.example.cielo.cielo.CieloResultBus
 import com.example.cielo.cielo.JvmBase64Codec
@@ -65,16 +64,16 @@ class CheckoutUiModelTest {
     }
 
     @Test
-    fun `opens the cielo deep link with the selected quantity and payment code`() = runTest {
+    fun `opens the cielo deep link with the selected quantity and no payment code`() = runTest {
         val uiModel = createUiModel().alsoLoaded()
         uiModel.onIncreaseQuantityClick()
-        uiModel.onPaymentCodeSelect(CieloPaymentCode.PIX)
 
         uiModel.onPayClick()
 
         val request = launcher.uris.single().decodedRequest()
         assertEquals("24000", request["value"]!!.jsonPrimitive.content)
-        assertEquals("PIX", request["paymentCode"]!!.jsonPrimitive.content)
+        // Sem paymentCode: a forma de pagamento é escolhida na tela da Cielo Smart.
+        assertNull(request["paymentCode"])
         assertTrue(uiModel.state.value.isPaymentInFlight)
         assertFalse(uiModel.state.value.canPay)
     }

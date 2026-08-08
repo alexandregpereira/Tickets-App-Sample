@@ -17,7 +17,6 @@ data class CieloPaymentRequest(
     val reference: String,
     val installments: Int = 0,
     val items: List<CieloPaymentItem>,
-    val paymentCode: String,
     /** Valor total em centavos, enviado como string conforme a documentação. */
     val value: String,
 )

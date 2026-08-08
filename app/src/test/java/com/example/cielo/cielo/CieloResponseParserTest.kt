@@ -22,7 +22,48 @@ class CieloResponseParserTest {
         assertEquals("Visa", approved.brand)
         assertEquals("424242-4242", approved.maskedCard)
         assertEquals("69000007", approved.terminal)
-        assertEquals("CREDITO A VISTA - I", approved.productName)
+    }
+
+    @Test
+    fun `describes the payment method chosen on the terminal`() {
+        val approved = parser.parse(encode(APPROVED_ORDER_JSON)) as CieloPaymentResult.Approved
+
+        assertEquals("CREDITO A VISTA", approved.paymentDescription)
+    }
+
+    @Test
+    fun `does not repeat the product name when the secondary already contains it`() {
+        // Formato devolvido pelo Emulador Cielo.
+        val json = APPROVED_ORDER_JSON
+            .replace("\"secondaryProductName\": \"A VISTA\"", "\"secondaryProductName\": \"PIX PAGAMENTO\"")
+            .replace("\"primaryProductName\": \"CREDITO\"", "\"primaryProductName\": \"PIX\"")
+
+        val approved = parser.parse(encode(json)) as CieloPaymentResult.Approved
+
+        assertEquals("PIX PAGAMENTO", approved.paymentDescription)
+    }
+
+    @Test
+    fun `falls back to productName when the product names are missing`() {
+        val json = APPROVED_ORDER_JSON
+            .replace("\"primaryProductName\": \"CREDITO\",", "")
+            .replace("\"secondaryProductName\": \"A VISTA\",", "")
+
+        val approved = parser.parse(encode(json)) as CieloPaymentResult.Approved
+
+        assertEquals("CREDITO A VISTA - I", approved.paymentDescription)
+    }
+
+    @Test
+    fun `has no payment description when the terminal sends none`() {
+        val json = APPROVED_ORDER_JSON
+            .replace("\"primaryProductName\": \"CREDITO\",", "")
+            .replace("\"secondaryProductName\": \"A VISTA\",", "")
+            .replace("\"productName\": \"CREDITO A VISTA - I\",", "")
+
+        val approved = parser.parse(encode(json)) as CieloPaymentResult.Approved
+
+        assertEquals(null, approved.paymentDescription)
     }
 
     @Test
@@ -107,6 +148,8 @@ class CieloResponseParserTest {
                   "merchantCode": "0000000000000003",
                   "paymentFields": {
                     "statusCode": "1",
+                    "primaryProductName": "CREDITO",
+                    "secondaryProductName": "A VISTA",
                     "productName": "CREDITO A VISTA - I",
                     "merchantName": "POSTO ABC"
                   },
