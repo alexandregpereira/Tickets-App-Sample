@@ -1,4 +1,5 @@
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
         google {
             content {
@@ -23,5 +24,17 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Cielo Smart"
+
 include(":app")
+
+// Módulos folha, sem dependência de feature alguma.
+include(":ui")
+include(":core:money")
+
+// Cada feature se divide em `core` (contrato) e `common` (implementação).
+include(":feature:shop:core")
+include(":feature:shop:common")
+include(":feature:checkout:common")
+include(":feature:payment:core")
+include(":feature:payment:common")
  

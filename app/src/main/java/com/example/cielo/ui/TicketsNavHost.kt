@@ -6,9 +6,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.example.cielo.checkout.CheckoutScreen
-import com.example.cielo.event.list.EventListScreen
-import com.example.cielo.purchase.receipt.ReceiptScreen
+import com.example.checkout.CheckoutScreen
+import com.example.shop.list.EventListScreen
+import com.example.checkout.purchase.receipt.ReceiptScreen
 import kotlinx.serialization.Serializable
 
 @Serializable

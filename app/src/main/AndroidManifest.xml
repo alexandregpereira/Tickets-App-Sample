@@ -2,26 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!--
-      Obrigatório a partir do Android 11 (API 30) para que o app consiga enxergar e enviar Intents
-      ao serviço de integração da Cielo Smart.
-      https://docs.cielo.com.br/cielo-smart/docs/configurando-o-android-manifest
-    -->
-    <queries>
-        <package android:name="com.ads.lio.uriappclient" />
-        <!-- Pacote usado pelo Emulador Cielo para o mesmo contrato de deep link. -->
-        <package android:name="br.com.cielosmart.orderservice" />
-        <!--
-          Consulta por intent: garante que o app enxergue quem resolve o esquema lio://,
-          independentemente do pacote (emulador, terminal ou versões futuras).
-        -->
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-
-            <data android:scheme="lio" />
-        </intent>
-    </queries>
-
     <application
         android:name=".CieloTicketsApp"
         android:allowBackup="true"
@@ -33,14 +13,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.CieloSmart">
 
-        <!-- Identifica o app como integração por URI/deep link para a plataforma Cielo. -->
-        <meta-data
-            android:name="cs_integration_type"
-            android:value="uri" />
-
         <!--
-          singleTop: o retorno da Cielo (order://response) chega em onNewIntent, sem recriar a
-          Activity nem destruir os UiModels que aguardam o resultado do pagamento.
+          singleTop: o retorno do pagamento chega em onNewIntent, sem recriar a Activity nem destruir
+          os UiModels que aguardam o resultado.
         -->
         <activity
             android:name=".MainActivity"
@@ -55,7 +30,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Contrato de resposta acordado com a Cielo Smart (urlCallback do deep link). -->
+            <!--
+              Contrato de resposta do pagamento. Precisa casar com o `urlCallback` que
+              `feature:payment:common` envia (CieloDeepLinkBuilder.CALLBACK_URI) — é a única
+              amarração entre os dois módulos que o grafo de dependências não consegue garantir,
+              porque um intent-filter só existe na Activity, e a Activity mora aqui.
+            -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
@@ -66,6 +46,11 @@
                     android:scheme="order" />
             </intent-filter>
         </activity>
+
+        <!--
+          As declarações exigidas pela Cielo (<queries> e cs_integration_type) vêm do manifesto de
+          feature:payment:common e são unidas a este no merge do AGP.
+        -->
     </application>
 
 </manifest>

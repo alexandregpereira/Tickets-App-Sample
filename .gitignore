@@ -3,7 +3,8 @@
 /local.properties
 /.idea
 .DS_Store
-/build
+# Regra global: com vários módulos, um /build por módulo não escala.
+build/
 /captures
 .externalNativeBuild
 .cxx

@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    // As rotas de navegação são @Serializable (navigation-compose type-safe).
     alias(libs.plugins.kotlin.serialization)
 }
 
@@ -36,16 +37,16 @@ android {
     buildFeatures {
         compose = true
     }
-    testOptions {
-        unitTests {
-            // Permite instanciar tipos do framework usados nos testes (ex.: ActivityNotFoundException)
-            // sem que os stubs do android.jar lancem "Stub!".
-            isReturnDefaultValues = true
-        }
-    }
 }
 
 dependencies {
+    // Raiz de composição: é o único módulo que depende de todas as features.
+    implementation(project(":feature:shop:common"))
+    implementation(project(":feature:checkout:common"))
+    implementation(project(":feature:payment:common"))
+    implementation(project(":feature:payment:core"))
+    implementation(project(":ui"))
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(platform(libs.koin.bom))
     implementation(libs.androidx.activity.compose)
@@ -55,18 +56,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.kotlinx.serialization.json)
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.turbine)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(libs.androidx.junit)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

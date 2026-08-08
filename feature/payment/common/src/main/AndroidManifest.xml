@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Declarações que existem por causa da integração com a Cielo Smart. Ficam neste módulo, e não no
+  app, para que a dependência da Cielo apareça também no manifesto — o merge do AGP as leva para o
+  APK final sem o app precisar saber delas.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      Obrigatório a partir do Android 11 (API 30) para que o app consiga enxergar e enviar Intents
+      ao serviço de integração da Cielo Smart.
+      https://docs.cielo.com.br/cielo-smart/docs/configurando-o-android-manifest
+    -->
+    <queries>
+        <package android:name="com.ads.lio.uriappclient" />
+        <!-- Pacote usado pelo Emulador Cielo para o mesmo contrato de deep link. -->
+        <package android:name="br.com.cielosmart.orderservice" />
+        <!--
+          Consulta por intent: garante que o app enxergue quem resolve o esquema lio://,
+          independentemente do pacote (emulador, terminal ou versões futuras).
+        -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+
+            <data android:scheme="lio" />
+        </intent>
+    </queries>
+
+    <application>
+        <!-- Identifica o app como integração por URI/deep link para a plataforma Cielo. -->
+        <meta-data
+            android:name="cs_integration_type"
+            android:value="uri" />
+    </application>
+
+</manifest>

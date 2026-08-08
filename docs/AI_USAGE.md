@@ -42,6 +42,9 @@ Restrições de arquitetura definidas antes da implementação:
 - Um `UseCase` com `suspend operator fun invoke()` devolvendo uma lista mockada de eventos.
 - UI simples: uma tela de listagem e outra de seleção de quantidade.
 - `clientID` e `accessToken` mockados, para serem preenchidos depois.
+- **Arquitetura multi-módulo**, com a Cielo isolada num módulo próprio: `feature/checkout/common`,
+  `feature/shop/common`, `feature/payment/common`, `feature/payment/core`, `core/money` e `ui`, cada
+  feature com o seu próprio módulo Koin, e `internal` em tudo que não é API do módulo.
 
 ## Decisões deixadas para o humano
 
@@ -54,10 +57,14 @@ implementação seguiu as respostas:
 | QR Code e/ou persistência com Room? | **Nenhum dos dois** — repositório em memória |
 | Como escolher o `paymentCode`? | O app **não envia** o campo: a forma de pagamento é escolhida na tela da própria Cielo Smart |
 | Quão longe ir nos testes? | Testes unitários de UiModel, builder do deep link, parser e guarda de duplicidade; **sem** testes instrumentados |
+| Até onde vai o `feature/payment/core`? | Contrato **completo** e agnóstico (iniciar pagamento, receber o desfecho, despachar a Intent) — só a interface do use case deixaria o checkout ainda importando a Cielo |
+| Onde ficam `Purchase` e o comprovante? | Em `feature/checkout/common`: são a cauda do fluxo de checkout |
+| Como o checkout obtém o `Event`? | Via um novo `feature/shop/core`, espelhando a divisão do pagamento, para não depender do módulo de implementação da loja |
+| Como evitar repetir a config Gradle em sete módulos? | Convention plugins num build composto `build-logic/` |
 
 ## Resultados que orientaram a implementação
 
-Três achados da verificação mudaram o código — vale registrar porque nenhum deles apareceria sem
+Quatro achados da verificação mudaram o código — vale registrar porque nenhum deles apareceria sem
 executar de verdade:
 
 **1. A ação de navegação se perdia no retorno da Cielo.** No primeiro teste ponta a ponta contra o
@@ -73,19 +80,25 @@ a ação emitida nesse intervalo num `SharedFlow` sem replay era descartada. Cor
 declarar os dois pacotes **e** uma consulta por intent no esquema `lio://`, que não depende do nome do
 pacote.
 
-**3. Tela presa ao voltar da Cielo.** Sair da Cielo Smart pelo botão voltar não gera callback nenhum,
+**3. Tela presa ao voltar do app de pagamento.** Sair da Cielo Smart pelo botão voltar não gera callback nenhum,
 então o checkout ficava para sempre em "aguardando pagamento", com o botão desabilitado. Correção:
 liberar a tela no `ON_RESUME` — mas só quando não houver um retorno publicado e ainda não processado,
 porque `onNewIntent` e `onResume` acontecem na mesma passagem pela main thread e liberar sem essa
 guarda faria a tela piscar de volta ao estado ocioso um instante antes de navegar para o comprovante.
 
+**4. Plugin de serialização perdido na modularização.** Ao reescrever o `build.gradle.kts` do `:app`
+para a versão enxuta, o `kotlin.plugin.serialization` ficou de fora. O projeto **compilou e os testes
+passaram** — as rotas type-safe do Navigation só falham em runtime, e o app crashou ao abrir com
+`SerializationException: Serializer for class 'EventListRoute' is not found`. Serve de lembrete do
+motivo de a verificação incluir rodar o app de verdade, e não só `./gradlew build`.
+
 Os cenários de aprovação, cancelamento e volta sem callback foram validados ponta a ponta contra o
-Emulador Cielo, e os 35 testes unitários passam.
+Emulador Cielo depois da modularização, e os 37 testes unitários passam.
 
 ## O que a IA *não* decidiu
 
 - A arquitetura (MVI, Koin, Compose, uma Activity) foi imposta, não sugerida.
-- O escopo (3 telas, sem Room, sem QR, sem seletor de pagamento, profundidade dos testes) foi escolhido
-  pelo humano a partir das opções apresentadas.
+- O escopo (3 telas, sem Room, sem QR, sem seletor de pagamento, profundidade dos testes) e o
+  desenho da modularização foram escolhidos pelo humano a partir das opções apresentadas.
 - O protocolo da Cielo não foi inventado: cada campo, código de erro e requisito de manifest tem uma
   página da documentação oficial como origem, citada no código e no README.

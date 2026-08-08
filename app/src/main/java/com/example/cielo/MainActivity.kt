@@ -5,30 +5,32 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.example.cielo.cielo.CieloResultBus
+import com.example.payment.core.PaymentResultDispatcher
 import com.example.cielo.ui.TicketsNavHost
-import com.example.cielo.ui.theme.CieloSmartTheme
+import com.example.ui.theme.TicketsTheme
 import org.koin.android.ext.android.inject
 
 /**
- * Única Activity do app: hospeda todo o Compose e recebe o retorno da Cielo Smart.
+ * Única Activity do app: hospeda todo o Compose e recebe o retorno do app de pagamento.
  *
- * A Cielo responde ao pagamento abrindo `order://response?response=<base64>&responsecode=0` como uma
- * nova Intent ACTION_VIEW (ver https://docs.cielo.com.br/cielo-smart/docs/recuperando-dados). Com
- * `launchMode="singleTop"` no manifest, essa Intent chega em [onNewIntent] sem recriar a Activity —
- * os UiModels sobrevivem e conseguem reconciliar o pagamento em andamento.
+ * O meio de pagamento responde abrindo uma nova Intent `ACTION_VIEW` neste app. Com
+ * `launchMode="singleTop"` no manifest, ela chega em [onNewIntent] sem recriar a Activity — os
+ * UiModels sobrevivem e conseguem reconciliar o pagamento em andamento.
+ *
+ * A Activity não sabe como o resultado vem codificado: só repassa a Intent ao
+ * [PaymentResultDispatcher], cuja implementação vive em `feature:payment:common`.
  */
 class MainActivity : ComponentActivity() {
 
-    private val cieloResultBus: CieloResultBus by inject()
+    private val paymentResultDispatcher: PaymentResultDispatcher by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         // Cobre o caso em que o processo foi morto e a Intent de resposta recria a Activity.
-        publishCieloResponse(intent)
+        paymentResultDispatcher.dispatch(intent)
         setContent {
-            CieloSmartTheme {
+            TicketsTheme {
                 TicketsNavHost()
             }
         }
@@ -37,16 +39,6 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        publishCieloResponse(intent)
-    }
-
-    private fun publishCieloResponse(intent: Intent?) {
-        if (intent?.action != Intent.ACTION_VIEW) return
-        val encodedResponse = intent.data?.getQueryParameter(QUERY_PARAM_RESPONSE) ?: return
-        cieloResultBus.post(encodedResponse)
-    }
-
-    private companion object {
-        const val QUERY_PARAM_RESPONSE = "response"
+        paymentResultDispatcher.dispatch(intent)
     }
 }
