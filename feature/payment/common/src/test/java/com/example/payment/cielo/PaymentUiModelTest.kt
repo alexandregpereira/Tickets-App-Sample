@@ -44,6 +44,22 @@ class PaymentUiModelTest {
     }
 
     @Test
+    fun `does not reopen the payment app when the screen is recreated`() = runTest {
+        val uiModel = PaymentUiModel(deepLink)
+        uiModel.onScreenStart()
+
+        // A tela abriu o app de pagamento e confirmou o consumo.
+        uiModel.actions.test { assertEquals(PaymentUiAction.OpenDeepLink(deepLink), awaitItem()) }
+        uiModel.onActionHandled()
+
+        // Girar a tela dentro da Cielo recria a Activity: o UiModel sobrevive e um coletor novo
+        // assina o flow. Sem a confirmação acima, o replay reabriria o app de pagamento.
+        uiModel.onScreenStart()
+
+        uiModel.actions.test { expectNoEvents() }
+    }
+
+    @Test
     fun `does not conclude abandonment on the resume that follows the launch`() = runTest {
         val uiModel = PaymentUiModel(deepLink)
         uiModel.onScreenStart()

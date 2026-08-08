@@ -20,11 +20,11 @@ val paymentModule = module {
     single { CieloResponseParser(get()) }
     single { CieloPaymentRequestFactory(get()) }
     single { CieloPaymentContract(get()) }
-    // createdAtStart: precisa existir antes da primeira Activity ser resumida, senão perde o
-    // callback e não teria quem registrar o launcher no momento do pagamento.
-    single(createdAtStart = true) { CurrentActivityProvider(androidApplication()) }
+    // createdAtStart: precisa existir antes da primeira Activity ser criada, senão perde os
+    // callbacks de ciclo de vida de que depende para religar pagamentos em andamento.
+    single(createdAtStart = true) { PaymentResultLauncher(androidApplication(), get()) }
 
-    factory<StartPaymentUseCase> { CieloStartPaymentUseCase(get(), get(), get(), get()) }
+    factory<StartPaymentUseCase> { CieloStartPaymentUseCase(get(), get(), get()) }
 
     viewModel { (paymentDeepLink: String) -> PaymentUiModel(paymentDeepLink) }
 }

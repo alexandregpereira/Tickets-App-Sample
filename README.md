@@ -152,6 +152,22 @@ Cielo troca de tela durante o fluxo (a tela de feedback dele), e nessas transiç
 chega a resumir por um piscar antes de perder o foco de novo. Concluir desistência no primeiro
 `onResume` matava pagamentos aprovados, o que só apareceu rodando no emulador.
 
+**O segundo detalhe é sobreviver à recriação da Activity.** Girar o dispositivo dentro do app da
+Cielo destrói e recria a `MainActivity`: o `ActivityResultRegistry` guarda o resultado pendente no
+estado salvo, mas o *callback* morre junto com a instância antiga — e como o `CheckoutUiModel`
+sobrevive, a corrotina ficava suspensa para sempre e a tela presa em "aguardando pagamento". O
+`PaymentResultLauncher` guarda os pagamentos em andamento e **revincula a chave de cada um a toda
+Activity nova**; registrar a chave faz o registry entregar na hora o resultado que estava guardado.
+A regra de "vincular uma vez por instância, de novo a cada instância" mora em `PaymentBindings`, sem
+tipos do Android, e é o que os testes de JVM cobrem.
+
+O `replay = 1` das ações tem uma armadilha própria nesse cenário, e ela custou um bug: proteger a
+**emissão** não basta, porque o replay reentrega a ação a cada coletor novo. Uma flag `hasLaunched`
+impedia emitir `OpenDeepLink` duas vezes, mas a `PaymentActivity` recriada assinava o flow e recebia
+o `OpenDeepLink` antigo — abrindo o app da Cielo **uma segunda vez**, que era o que ficava atrás ao
+voltar para o checkout. A correção é a mesma do checkout: a tela confirma o consumo em
+`onActionHandled()`, que limpa o replay.
+
 ### Arquitetura multi-módulo
 
 O app é dividido em módulos Gradle para que a fronteira com a Cielo seja **garantida pelo
@@ -339,7 +355,9 @@ O case pede a documentação do harness do agente e do "como" a IA foi usada. Es
   gravada antes de abrir o pagamento, e o desfecho volta pela Activity Result API — entrega única,
   sem janela em que um retorno possa se perder por falta de quem o escute.
 - **Sem testes instrumentados.** A lógica crítica (idempotência, protocolo, máquina de estados) está
-  toda em código testável na JVM, que roda rápido.
+  toda em código testável na JVM, que roda rápido. O preço é que o comportamento da `PaymentActivity`
+  — ordem de ciclo de vida, revinculação após recriação — só é garantido rodando no emulador; o que
+  dá para isolar em regra pura (`PaymentBindings`, `CieloCallbackUri`) está coberto por teste.
 - **`MainDispatcherRule` duplicada.** A regra de 15 linhas existe em `:feature:checkout:common` e em
   `:feature:shop:common`. A alternativa seria um módulo `:core:testing` só para ela — para dois
   arquivos idênticos e pequenos, a duplicação me pareceu mais barata que mais um módulo. Se um

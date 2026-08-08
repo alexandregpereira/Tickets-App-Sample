@@ -1,0 +1,66 @@
+package com.example.payment.cielo
+
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+/**
+ * A regra que faz um pagamento sobreviver à recriação da Activity: revincular na instância nova,
+ * sem nunca registrar a mesma chave duas vezes na mesma.
+ */
+class PaymentBindingsTest {
+
+    private val bindings = PaymentBindings()
+    private val activity = Any()
+    private val recreatedActivity = Any()
+
+    @Test
+    fun `binds a key that is not bound yet`() {
+        assertEquals(setOf("pagamento-1"), bindings.keysToBind(activity, setOf("pagamento-1")))
+    }
+
+    @Test
+    fun `does not bind the same key twice on the same activity`() {
+        bindings.keysToBind(activity, setOf("pagamento-1"))
+
+        assertEquals(emptySet<String>(), bindings.keysToBind(activity, setOf("pagamento-1")))
+    }
+
+    @Test
+    fun `binds only what is missing`() {
+        bindings.keysToBind(activity, setOf("pagamento-1"))
+
+        val toBind = bindings.keysToBind(activity, setOf("pagamento-1", "pagamento-2"))
+
+        assertEquals(setOf("pagamento-2"), toBind)
+    }
+
+    @Test
+    fun `binds again on a recreated activity`() {
+        bindings.keysToBind(activity, setOf("pagamento-1"))
+
+        // É isto que salva a rotação: a instância nova precisa registrar a chave de novo, para o
+        // registry entregar o resultado que ficou guardado.
+        assertEquals(
+            setOf("pagamento-1"),
+            bindings.keysToBind(recreatedActivity, setOf("pagamento-1")),
+        )
+    }
+
+    @Test
+    fun `a finished payment can be bound again later`() {
+        bindings.keysToBind(activity, setOf("pagamento-1"))
+
+        bindings.forget("pagamento-1")
+
+        assertEquals(setOf("pagamento-1"), bindings.keysToBind(activity, setOf("pagamento-1")))
+    }
+
+    @Test
+    fun `a destroyed activity stops holding bindings`() {
+        bindings.keysToBind(activity, setOf("pagamento-1"))
+
+        bindings.forgetActivity(activity)
+
+        assertEquals(setOf("pagamento-1"), bindings.keysToBind(activity, setOf("pagamento-1")))
+    }
+}

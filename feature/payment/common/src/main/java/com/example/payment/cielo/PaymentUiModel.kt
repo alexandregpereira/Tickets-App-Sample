@@ -45,6 +45,17 @@ internal class PaymentUiModel(
         _actions.tryEmit(PaymentUiAction.OpenDeepLink(paymentDeepLink))
     }
 
+    /**
+     * A tela avisa que tratou a última ação, liberando o replay.
+     *
+     * Sem isto, [hasLaunched] protegeria apenas a **emissão**, não a **entrega**: o `replay = 1`
+     * existe para um desfecho emitido sem coletor não se perder, mas ele também reentregaria o
+     * `OpenDeepLink` já consumido a cada nova Activity — e girar a tela dentro da Cielo abriria o
+     * app de pagamento uma segunda vez.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun onActionHandled() = _actions.resetReplayCache()
+
     fun onScreenPause() {
         if (hasLaunched) hasLeftScreen = true
         // Voltamos a sair de cena: não era desistência.

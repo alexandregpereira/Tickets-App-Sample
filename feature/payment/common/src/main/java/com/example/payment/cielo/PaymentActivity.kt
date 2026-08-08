@@ -73,6 +73,9 @@ internal class PaymentActivity : ComponentActivity() {
                     is PaymentUiAction.FinishWithResponse -> finishWithResponse(action.encodedResponse)
                     is PaymentUiAction.FinishWithError -> finishWithError(action.outcome)
                 }
+                // Confirma o consumo: uma Activity recriada não deve receber de novo o que esta já
+                // tratou — em especial o pedido de abrir o app de pagamento.
+                uiModel.onActionHandled()
             }
         }
     }
