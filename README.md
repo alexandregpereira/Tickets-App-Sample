@@ -292,48 +292,6 @@ Nenhum caminho de erro deixa o usuário sem saber se foi cobrado:
 Nenhuma biblioteca de mock (Mockito/MockK): as dependências são interfaces pequenas, então os fakes
 são escritos à mão. Menos mágica no teste, mais legibilidade no code review.
 
-## Testes automatizados
-
-`./gradlew testDebugUnitTest` — 49 testes, distribuídos pelos módulos que eles cobrem:
-
-**`:feature:payment:common`** — o protocolo da Cielo:
-
-- **`CieloDeepLinkBuilderTest`** — esquema/host/params da URI, round-trip Base64, valores em
-  centavos, propagação da `reference` e ausência do `paymentCode`.
-- **`CieloPaymentRequestFactoryTest`** — a tradução de `PaymentOrder` para a requisição da Cielo.
-- **`PaymentUiModelTest`** — a lógica mais delicada do fluxo: o deep link é aberto **uma única vez**,
-  o retorno da adquirente vence um `onResume` posterior, um resume **transitório** entre telas do app
-  de pagamento **não** é desistência, um primeiro plano que se sustenta **é**, e a ausência de app
-  vira `APP_NOT_FOUND`.
-- **`CieloCallbackUriTest`** — leitura do `order://response`: padding `=` do Base64, `+` preservado,
-  escapes `%XX` decodificados, e deep links que não são o callback.
-- **`CieloResponseParserTest`** — pedido aprovado (com um recorte do payload real da documentação),
-  cada código de erro 1–4, `statusCode` 2 como cancelamento, pedido sem transação, resposta
-  ausente/malformada/não-JSON sem lançar exceção, e a descrição da forma de pagamento escolhida no
-  terminal (formato da documentação, formato do emulador, fallback e ausência).
-
-**`:feature:checkout:common`** — a lógica do checkout, com dublês de `payment:core`
-(`FakeStartPaymentUseCase`). Estes testes **não conhecem a Cielo**: para
-conferir a `reference`, leem o `PaymentOrder` que o checkout enviou ao dublê — testam a regra de
-negócio, não o formato do fio, que é coberto pelos testes de `:feature:payment:common`.
-
-- **`CheckoutUiModelTest`** — quantidade limitada entre 1 e 10, recálculo do total, `PaymentOrder`
-  enviado com a quantidade e o valor corretos, compra gravada como `PENDING` antes de iniciar o
-  pagamento, **o segundo toque em Pagar é ignorado**, aprovação e cancelamento registrados e
-  navegando para o comprovante com o `isApproved` correto, **desistência não deixa compra nem
-  comprovante nem mensagem**, ausência de app de pagamento explica o erro sem registrar compra, e
-  **mudar a quantidade depois de desistir envia o novo total**.
-- **`PurchaseRepositoryTest`** — idempotência de `start` e `recordResult`, mapeamento de
-  cancelamento/recusa, resultado para referência desconhecida, e `discard` removendo uma compra
-  pendente mas **nunca** uma com desfecho definitivo.
-
-**`:feature:shop:common`**
-
-- **`EventListUiModelTest`** — transição de carregamento para conteúdo e ação de navegação.
-
-O fluxo completo também foi validado ponta a ponta contra o **Emulador Cielo** real, nos cenários de
-sucesso e de cancelamento.
-
 ## Uso de IA
 
 O case pede a documentação do harness do agente e do "como" a IA foi usada. Está em
