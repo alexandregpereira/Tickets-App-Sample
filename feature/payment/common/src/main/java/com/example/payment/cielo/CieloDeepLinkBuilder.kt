@@ -25,10 +25,15 @@ internal class CieloDeepLinkBuilder(
         const val PAYMENT_URI = "lio://payment"
 
         /**
-         * Contrato de resposta declarado no AndroidManifest da MainActivity. Precisa ser idêntico
-         * ao `<data android:scheme="order" android:host="response" />` do manifest.
+         * Partes do contrato de resposta declarado no AndroidManifest da MainActivity: precisam ser
+         * idênticas ao `<data android:scheme="order" android:host="response" />` do manifest.
+         * [CieloPaymentResultSource] usa as duas para reconhecer o retorno.
          */
-        const val CALLBACK_URI = "order://response"
+        const val CALLBACK_SCHEME = "order"
+        const val CALLBACK_HOST = "response"
+
+        /** O mesmo contrato como URI, enviado no `urlCallback` da requisição de pagamento. */
+        const val CALLBACK_URI = "$CALLBACK_SCHEME://$CALLBACK_HOST"
 
         /** Pacote do serviço de integração da Cielo, declarado em `<queries>` (Android 11+). */
         const val CIELO_URI_APP_PACKAGE = "com.ads.lio.uriappclient"

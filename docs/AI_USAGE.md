@@ -61,6 +61,7 @@ implementação seguiu as respostas:
 | Onde ficam `Purchase` e o comprovante? | Em `feature/checkout/common`: são a cauda do fluxo de checkout |
 | Como o checkout obtém o `Event`? | Via um novo `feature/shop/core`, espelhando a divisão do pagamento, para não depender do módulo de implementação da loja |
 | Como evitar repetir a config Gradle em sete módulos? | Convention plugins num build composto `build-logic/` |
+| Os módulos `core` devem ser biblioteca Android ou Kotlin/JVM? | Kotlin/JVM puro. O único obstáculo era `PaymentResultDispatcher.dispatch(Intent)`; a assinatura passou a receber `String`, com a `MainActivity` filtrando a Intent e extraindo o deep link, já que ela recebe outras Intents além do retorno de pagamento |
 
 ## Resultados que orientaram a implementação
 

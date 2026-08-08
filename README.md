@@ -94,7 +94,7 @@ de uma Activity e a Activity mora lá:
 **3. Resposta.** A Cielo devolve o resultado abrindo `order://response?response=<base64>` como uma
 **nova Intent**. Como o app tem uma única Activity, ela é declarada `launchMode="singleTop"`: a
 Intent chega em `onNewIntent` sem recriar a Activity, e os UiModels que aguardam o pagamento
-sobrevivem. A `MainActivity` apenas repassa a Intent ao `PaymentResultDispatcher`, implementado por
+sobrevivem. A `MainActivity` extrai o deep link e o repassa ao `PaymentResultDispatcher`, implementado por
 [CieloPaymentResultSource](feature/payment/common/src/main/java/com/example/payment/cielo/CieloPaymentResultSource.kt); o
 [CheckoutUiModel](feature/checkout/common/src/main/java/com/example/checkout/CheckoutUiModel.kt) consome, e o
 [CieloResponseParser](feature/payment/common/src/main/java/com/example/payment/cielo/CieloResponseParser.kt) interpreta.
@@ -155,26 +155,31 @@ não compila.
  │                             ─► :feature:payment:core
  └─► :feature:payment:common ──► :feature:payment:core   ← ÚNICO módulo que conhece a Cielo
 
- :ui  e  :core:money   ← módulos folha, usados pelas features
+ :ui  e  :core:money   ← folhas compartilhadas, usadas por várias features
 ```
 
-| Módulo | Pacote | Conteúdo |
-| --- | --- | --- |
-| `:app` | `com.example.cielo` | `MainActivity`, `TicketsNavHost`, `startKoin` |
-| `:ui` | `com.example.ui` | tema e `CollectUiActions` |
-| `:core:money` | `com.example.core.money` | `formatAsBrl` (Kotlin puro, sem Android) |
-| `:feature:shop:core` | `com.example.shop.core` | `Event`, `GetEventUseCase` (interface) |
-| `:feature:shop:common` | `com.example.shop` | catálogo mockado, listagem, `shopModule` |
-| `:feature:checkout:common` | `com.example.checkout` | checkout, `Purchase`/`PurchaseRepository`, comprovante, `checkoutModule` |
-| `:feature:payment:core` | `com.example.payment.core` | contrato de pagamento agnóstico |
-| `:feature:payment:common` | `com.example.payment.cielo` | tudo que é Cielo + implementações, `paymentModule` |
+| Módulo | Tipo | Pacote | Conteúdo |
+| --- | --- | --- | --- |
+| `:app` | app Android | `com.example.cielo` | `MainActivity`, `TicketsNavHost`, `startKoin` |
+| `:ui` | lib Android | `com.example.ui` | tema e `CollectUiActions` |
+| `:core:money` | **Kotlin/JVM** | `com.example.core.money` | `formatAsBrl` |
+| `:feature:shop:core` | **Kotlin/JVM** | `com.example.shop.core` | `Event`, `GetEventUseCase` (interface) |
+| `:feature:shop:common` | lib Android | `com.example.shop` | catálogo mockado, listagem, `shopModule` |
+| `:feature:checkout:common` | lib Android | `com.example.checkout` | checkout, `Purchase`/`PurchaseRepository`, comprovante, `checkoutModule` |
+| `:feature:payment:core` | **Kotlin/JVM** | `com.example.payment.core` | contrato de pagamento agnóstico |
+| `:feature:payment:common` | lib Android | `com.example.payment.cielo` | tudo que é Cielo + implementações, `paymentModule` |
+
+Os módulos `core` e `:core:money` são **Kotlin/JVM puro**, não bibliotecas Android. Eles carregam
+contratos e tipos de domínio, que não precisam de framework — e a escolha é auto-verificável: com o
+plugin JVM, um `import android.*` nesses módulos simplesmente não compila. Na prática também sai mais
+barato (geram JAR, sem manifesto, sem AAR, sem toolchain Android no caminho).
 
 #### O contrato `payment:core`
 
 ```kotlin
 fun interface StartPaymentUseCase { suspend operator fun invoke(order: PaymentOrder): StartPaymentResult }
 interface PaymentResultSource { val results: Flow<PaymentResult>; fun hasPendingResult(): Boolean; fun consume() }
-interface PaymentResultDispatcher { fun dispatch(intent: Intent): Boolean }
+interface PaymentResultDispatcher { fun dispatch(deepLink: String): Boolean }
 ```
 
 Três decisões que valem explicar num code review:
@@ -187,9 +192,11 @@ Três decisões que valem explicar num code review:
   compra é o `CheckoutUiModel`, que grava o `Purchase` como `PENDING` **antes** de chamar o
   pagamento: se o processo for morto com o app de pagamento em foreground, resta um registro ligado
   à `reference` para reconciliar o desfecho quando o retorno chegar.
-- **`PaymentResultDispatcher` existe para a Activity.** A `MainActivity` recebe a Intent de retorno,
-  mas não deve saber que o resultado vem num query param `response` em Base64. Ela só repassa a
-  Intent; a decodificação mora em `:feature:payment:common`.
+- **`PaymentResultDispatcher` divide a responsabilidade com a Activity.** A `MainActivity` recebe
+  mais de um tipo de Intent — abertura pelo launcher e o retorno do pagamento —, então cabe a ela
+  filtrar e extrair o deep link. Reconhecer se aquela URI é um retorno seu e decodificá-la (query
+  param `response` em Base64) é de `:feature:payment:common`. Receber `String` em vez de `Intent` é
+  o que permite a este módulo não depender do Android.
 
 #### Visibilidade
 
@@ -204,7 +211,7 @@ enxergam os seus próprios `internal`.
 
 #### Convention plugins
 
-`build-logic/` é um build composto com `cielosmart.android.library`,
+`build-logic/` é um build composto com três convention plugins: `cielosmart.android.library`,
 `cielosmart.android.library.compose` e `cielosmart.jvm.library`. Sem isso, os sete módulos repetiriam
 o mesmo bloco `android { }`; com isso, o build file de um módulo de feature tem cinco linhas e mudar
 a `compileSdk` é uma edição só.

@@ -1,12 +1,9 @@
 plugins {
-    id("cielosmart.android.library")
-}
-
-android {
-    namespace = "com.example.payment.core"
+    id("cielosmart.jvm.library")
 }
 
 dependencies {
-    // Só coroutines: o contrato de pagamento não conhece UI, DI nem adquirente.
-    implementation(libs.kotlinx.coroutines.core)
+    // `api` porque `PaymentResultSource.results` expõe `Flow` na API pública do módulo.
+    // Fora isso, o contrato de pagamento não conhece UI, DI, Android nem adquirente.
+    api(libs.kotlinx.coroutines.core)
 }

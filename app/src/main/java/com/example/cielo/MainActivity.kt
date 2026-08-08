@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         // Cobre o caso em que o processo foi morto e a Intent de resposta recria a Activity.
-        paymentResultDispatcher.dispatch(intent)
+        dispatchPaymentResult(intent)
         setContent {
             TicketsTheme {
                 TicketsNavHost()
@@ -39,6 +39,16 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        paymentResultDispatcher.dispatch(intent)
+        dispatchPaymentResult(intent)
+    }
+
+    /**
+     * Esta Activity pode receber mais de um tipo de Intent. Filtrar qual é qual e extrair o deep link é responsabilidade daqui;
+     * reconhecer e decodificar o conteúdo é do módulo de pagamento.
+     */
+    private fun dispatchPaymentResult(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_VIEW) return
+        val deepLink = intent.data?.toString() ?: return
+        paymentResultDispatcher.dispatch(deepLink)
     }
 }
