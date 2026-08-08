@@ -21,7 +21,11 @@ dependencies {
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
     implementation(libs.kotlinx.serialization.json)
+    // PaymentActivity: ComponentActivity + Activity Result API + ViewModel. Nada de Compose.
+    implementation(libs.androidx.activity)
+    implementation(libs.androidx.lifecycle.viewmodel)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
 }

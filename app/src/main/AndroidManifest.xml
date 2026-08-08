@@ -13,15 +13,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.CieloSmart">
 
-        <!--
-          singleTop: o retorno do pagamento chega em onNewIntent, sem recriar a Activity nem destruir
-          os UiModels que aguardam o resultado.
-        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:launchMode="singleTop"
             android:theme="@style/Theme.CieloSmart"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -29,27 +24,12 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
-            <!--
-              Contrato de resposta do pagamento. Precisa casar com o `urlCallback` que
-              `feature:payment:common` envia (CieloDeepLinkBuilder.CALLBACK_URI) — é a única
-              amarração entre os dois módulos que o grafo de dependências não consegue garantir,
-              porque um intent-filter só existe na Activity, e a Activity mora aqui.
-            -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-
-                <data
-                    android:host="response"
-                    android:scheme="order" />
-            </intent-filter>
         </activity>
 
         <!--
-          As declarações exigidas pela Cielo (<queries> e cs_integration_type) vêm do manifesto de
-          feature:payment:common e são unidas a este no merge do AGP.
+          Nada de pagamento aqui: a Activity que recebe o `order://response`, o `<queries>` da Cielo
+          e o metadata `cs_integration_type` vêm do manifesto de feature:payment:common e são unidos
+          a este no merge do AGP.
         -->
     </application>
 

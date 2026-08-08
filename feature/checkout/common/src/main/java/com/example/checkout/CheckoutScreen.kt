@@ -28,8 +28,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.CollectUiActions
 import com.example.core.money.formatAsBrl
@@ -44,9 +42,6 @@ fun CheckoutScreen(
 ) {
     val uiModel: CheckoutUiModel = koinViewModel { parametersOf(eventId) }
     val state by uiModel.state.collectAsStateWithLifecycle()
-
-    // Cobre a volta do app de pagamento sem callback — por exemplo, sair pelo botão voltar.
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { uiModel.onScreenResume() }
 
     CollectUiActions(uiModel.actions, onHandled = uiModel::onActionHandled) { action ->
         when (action) {

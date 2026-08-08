@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+      Tema da PaymentActivity: translúcida e **sem animação de transição**.
+
+      Ela não desenha nada — existe só para ter ciclo de vida e intent-filter próprios. Com animação,
+      o usuário veria duas transições onde deveria haver uma (checkout → ponte → Cielo) e, no
+      caminho de volta, um piscar da tela vazia antes do comprovante. Sem animação, a ponte fica
+      imperceptível: a impressão é que o checkout abre a Cielo diretamente.
+    -->
+    <style name="Theme.Payment.Bridge" parent="@android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:windowAnimationStyle">@style/Animation.Payment.None</item>
+
+        <!--
+          A tela que fica atrás é edge-to-edge, com barras de sistema transparentes. Sem repetir esse
+          tratamento aqui, o sistema reavalia as barras ao trazer esta Activity para a frente e elas
+          aparecem entrando e saindo — a ponte volta a ser percebida, mesmo sem animação de janela.
+        -->
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <style name="Animation.Payment.None" parent="@android:style/Animation">
+        <item name="android:activityOpenEnterAnimation">@null</item>
+        <item name="android:activityOpenExitAnimation">@null</item>
+        <item name="android:activityCloseEnterAnimation">@null</item>
+        <item name="android:activityCloseExitAnimation">@null</item>
+        <item name="android:taskOpenEnterAnimation">@null</item>
+        <item name="android:taskOpenExitAnimation">@null</item>
+        <item name="android:taskCloseEnterAnimation">@null</item>
+        <item name="android:taskCloseExitAnimation">@null</item>
+        <item name="android:taskToFrontEnterAnimation">@null</item>
+        <item name="android:taskToFrontExitAnimation">@null</item>
+        <item name="android:taskToBackEnterAnimation">@null</item>
+        <item name="android:taskToBackExitAnimation">@null</item>
+    </style>
+
+</resources>

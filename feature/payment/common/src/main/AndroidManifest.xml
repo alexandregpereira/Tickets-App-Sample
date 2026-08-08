@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Declarações que existem por causa da integração com a Cielo Smart. Ficam neste módulo, e não no
-  app, para que a dependência da Cielo apareça também no manifesto — o merge do AGP as leva para o
-  APK final sem o app precisar saber delas.
+  Tudo que existe por causa da integração com a Cielo Smart mora aqui, e não no app: a dependência
+  aparece também no manifesto, e o merge do AGP a leva para o APK final sem o app precisar saber.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -31,6 +30,32 @@
         <meta-data
             android:name="cs_integration_type"
             android:value="uri" />
+
+        <!--
+          Tela-ponte do pagamento. Não desenha nada: o tema a mantém translúcida e sem animação de
+          transição, para que ela não apareça como um passo a mais entre o checkout e a Cielo.
+
+          - exported: precisa receber o deep link de retorno, que vem de outro app;
+          - singleTop: o `order://response` é reentregue a esta instância em onNewIntent, em vez de
+            empilhar uma segunda;
+          - o intent-filter é o contrato declarado em CieloDeepLinkBuilder.CALLBACK_URI, e fica no
+            mesmo módulo que o define.
+        -->
+        <activity
+            android:name=".PaymentActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.Payment.Bridge">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data
+                    android:host="response"
+                    android:scheme="order" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

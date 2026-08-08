@@ -38,4 +38,12 @@ enum class PaymentError {
 
     /** A resposta chegou, mas não foi possível interpretá-la. */
     INVALID_RESPONSE,
+
+    /**
+     * O usuário saiu do fluxo antes de qualquer desfecho — voltou sem pagar nem cancelar.
+     *
+     * Diferente de [CANCELLED_BY_USER], que é uma recusa vinda da adquirente: aqui a cobrança nunca
+     * chegou a ser tentada, então não há o que registrar nem comprovante a exibir.
+     */
+    ABANDONED,
 }

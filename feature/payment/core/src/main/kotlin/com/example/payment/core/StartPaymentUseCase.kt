@@ -1,22 +1,15 @@
 package com.example.payment.core
 
 /**
- * Inicia a cobrança de um pedido.
+ * Cobra um pedido e **suspende até o desfecho**.
  *
- * O contrato é deliberadamente assíncrono em duas etapas: esta chamada apenas **abre** o fluxo de
- * pagamento e devolve se conseguiu abri-lo. O desfecho (aprovado, negado, cancelado) chega depois
- * por [PaymentResultSource], porque no meio do caminho existe um app externo que assume a tela.
+ * Uma chamada, um resultado: quem pede o pagamento não precisa saber que no meio do caminho existe
+ * um app externo assumindo a tela, nem observar canal nenhum para descobrir como terminou.
+ *
+ * Nunca lança e nunca deixa a chamada sem resposta — desistência do usuário e ausência de app de
+ * pagamento também voltam como [PaymentResult.Failed].
  */
 fun interface StartPaymentUseCase {
 
-    suspend operator fun invoke(order: PaymentOrder): StartPaymentResult
-}
-
-sealed interface StartPaymentResult {
-
-    /** Fluxo de pagamento aberto; o desfecho virá por [PaymentResultSource]. */
-    data object Launched : StartPaymentResult
-
-    /** Não foi possível nem abrir o fluxo — logo, não houve cobrança e dá para tentar de novo. */
-    data class Failed(val error: PaymentError, val reason: String) : StartPaymentResult
+    suspend operator fun invoke(order: PaymentOrder): PaymentResult
 }

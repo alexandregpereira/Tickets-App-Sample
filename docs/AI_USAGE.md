@@ -35,7 +35,8 @@ dessa documentação, não de suposição.
 Restrições de arquitetura definidas antes da implementação:
 
 - Kotlin + Jetpack Compose para toda a UI; **nenhum XML de layout**.
-- **Uma única Activity**, que inicia o Compose.
+- **Uma única Activity** para a UI, que inicia o Compose (o módulo de pagamento tem a sua própria,
+  sem UI, para receber o retorno da adquirente).
 - **Koin** para injeção de dependência.
 - **MVI**: a UI conversa com um `UiModel` que detém o `UiState`; estado por `StateFlow`, ações por
   `SharedFlow`, intenções enviadas por **funções públicas** do `UiModel`.
@@ -62,10 +63,12 @@ implementação seguiu as respostas:
 | Como o checkout obtém o `Event`? | Via um novo `feature/shop/core`, espelhando a divisão do pagamento, para não depender do módulo de implementação da loja |
 | Como evitar repetir a config Gradle em sete módulos? | Convention plugins num build composto `build-logic/` |
 | Os módulos `core` devem ser biblioteca Android ou Kotlin/JVM? | Kotlin/JVM puro. O único obstáculo era `PaymentResultDispatcher.dispatch(Intent)`; a assinatura passou a receber `String`, com a `MainActivity` filtrando a Intent e extraindo o deep link, já que ela recebe outras Intents além do retorno de pagamento |
+| Onde registrar o launcher da Activity Result API, já que quem pede o pagamento é um UiModel? | `feature/payment/common` rastreia a `ComponentActivity` em foco e usa o `activityResultRegistry` dela, mantendo a `MainActivity` limpa. Custo aceito: recriação da Activity hospedeira durante o pagamento perde o resultado |
+| Voltar do app de pagamento é um cancelamento? | Não: novo `PaymentError.ABANDONED`, distinto do `CANCELLED_BY_USER` da adquirente. Nada foi cobrado, então o checkout descarta a compra e não exibe comprovante |
 
 ## Resultados que orientaram a implementação
 
-Quatro achados da verificação mudaram o código — vale registrar porque nenhum deles apareceria sem
+Seis achados da verificação mudaram o código — vale registrar porque nenhum deles apareceria sem
 executar de verdade:
 
 **1. A ação de navegação se perdia no retorno da Cielo.** No primeiro teste ponta a ponta contra o
@@ -93,8 +96,20 @@ passaram** — as rotas type-safe do Navigation só falham em runtime, e o app c
 `SerializationException: Serializer for class 'EventListRoute' is not found`. Serve de lembrete do
 motivo de a verificação incluir rodar o app de verdade, e não só `./gradlew build`.
 
-Os cenários de aprovação, cancelamento e volta sem callback foram validados ponta a ponta contra o
-Emulador Cielo depois da modularização, e os 37 testes unitários passam.
+**5. Provedor da Activity criado tarde demais.** Ao mover o pagamento para uma `PaymentActivity`
+aberta pela Activity Result API, o rastreador da Activity em foco era um `single` do Koin — criado só
+no primeiro pagamento, portanto **depois** de a `MainActivity` já ter sido resumida. Sem Activity, o
+pagamento falhava na hora de registrar o launcher. Correção: `createdAtStart = true`.
+
+**6. Um resume transitório era lido como desistência.** O primeiro desenho concluía "o usuário
+desistiu" no primeiro `onResume` posterior a um `onPause`. No emulador, todo pagamento aprovado
+voltava sem comprovante: o `logcat` mostrou que a Cielo abre uma tela de feedback própria e só
+responde ~4s depois, e nessa troca de telas a `PaymentActivity` resume por um piscar. Correção:
+desistência só vale se o primeiro plano **se sustentar** — qualquer `onPause` ou retorno da
+adquirente antes disso cancela a conclusão.
+
+Os cenários de aprovação, cancelamento, desistência e "mudar a quantidade depois de desistir" foram
+validados ponta a ponta contra o Emulador Cielo, e os 49 testes unitários passam.
 
 ## O que a IA *não* decidiu
 

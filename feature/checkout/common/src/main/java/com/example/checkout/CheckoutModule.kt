@@ -15,7 +15,6 @@ val checkoutModule = module {
             getEvent = get(),
             startPayment = get(),
             purchaseRepository = get(),
-            paymentResultSource = get(),
         )
     }
     viewModel { (purchaseReference: String) -> ReceiptUiModel(purchaseReference, get()) }

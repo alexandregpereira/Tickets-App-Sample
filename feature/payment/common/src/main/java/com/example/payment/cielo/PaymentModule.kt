@@ -1,30 +1,30 @@
 package com.example.payment.cielo
 
-import com.example.payment.core.PaymentResultDispatcher
-import com.example.payment.core.PaymentResultSource
 import com.example.payment.core.StartPaymentUseCase
-import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.koin.androidApplication
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
  * Única coisa pública deste módulo, junto do que ele liga em `payment:core`.
  *
  * Trocar a Cielo por outra adquirente é substituir este módulo Koin: nada fora daqui referencia um
- * tipo `Cielo*`.
+ * tipo `Cielo*`, nem sabe que existe uma `PaymentActivity`.
  */
 val paymentModule = module {
     // Credenciais mockadas: substituir pelos valores do Portal de Desenvolvedores da Cielo.
     single { CieloCredentials.MOCK }
 
     single<Base64Codec> { AndroidBase64Codec() }
-    single<CieloCheckoutLauncher> { AndroidCieloCheckoutLauncher(androidContext()) }
     single { CieloDeepLinkBuilder(get()) }
     single { CieloResponseParser(get()) }
-    single { CieloResultBus() }
+    single { CieloPaymentRequestFactory(get()) }
+    single { CieloPaymentContract(get()) }
+    // createdAtStart: precisa existir antes da primeira Activity ser resumida, senão perde o
+    // callback e não teria quem registrar o launcher no momento do pagamento.
+    single(createdAtStart = true) { CurrentActivityProvider(androidApplication()) }
 
-    single { CieloPaymentResultSource(get(), get()) }
-    single<PaymentResultSource> { get<CieloPaymentResultSource>() }
-    single<PaymentResultDispatcher> { get<CieloPaymentResultSource>() }
+    factory<StartPaymentUseCase> { CieloStartPaymentUseCase(get(), get(), get(), get()) }
 
-    factory<StartPaymentUseCase> { CieloStartPaymentUseCase(get(), get(), get()) }
+    viewModel { (paymentDeepLink: String) -> PaymentUiModel(paymentDeepLink) }
 }
