@@ -28,7 +28,7 @@ import java.util.UUID
  * Não conhece adquirente nenhuma — fala só com `payment:core`, e o pagamento é uma única chamada que
  * suspende até terminar. Trocar o meio de pagamento não muda uma linha deste arquivo.
  *
- * Prevenção de cobrança duplicada, requisito explícito do case:
+ * Prevenção de cobrança duplicada:
  * 1. [onPayClick] é ignorado enquanto houver um pagamento em andamento, então nunca há dois pedidos
  *    abertos ao mesmo tempo;
  * 2. cada tentativa tem a sua própria `reference` e a sua própria compra; uma tentativa que não
@@ -119,7 +119,7 @@ internal class CheckoutUiModel(
         pendingReference = null
 
         // Aprovada, negada ou cancelada, o desfecho é registrado e mostrado no comprovante — a
-        // recusa inclusive, que o case exige registrar e exibir.
+        // recusa inclusive.
         _actions.emit(
             CheckoutUiAction.NavigateToReceipt(
                 purchaseReference = reference,
