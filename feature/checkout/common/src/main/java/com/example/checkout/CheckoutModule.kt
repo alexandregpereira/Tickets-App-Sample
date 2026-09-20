@@ -6,7 +6,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val checkoutModule = module {
-    // Singleton: guarda as compras em memória para toda a sessão do app.
+    // Singleton: keeps purchases in memory for the whole app session.
     single { PurchaseRepository() }
 
     viewModel { (eventId: String) ->

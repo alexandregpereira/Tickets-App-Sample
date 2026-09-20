@@ -8,11 +8,11 @@ import com.example.payment.core.PaymentError
 import com.example.payment.core.PaymentResult
 
 /**
- * Contrato da Activity Result API para o pagamento: entra um deep link, sai um [PaymentResult].
+ * The Activity Result API contract for payments: a deep link goes in, a [PaymentResult] comes out.
  *
- * A [PaymentActivity] devolve o payload cru (o `response` em Base64) em vez de um [PaymentResult]
- * pronto. Assim o resultado não precisa atravessar a Intent serializado, e a tradução do formato da
- * Cielo continua num lugar só — o [CieloResponseParser].
+ * [PaymentActivity] returns the raw payload (the Base64 `response`) rather than a ready-made
+ * [PaymentResult]. That way the result doesn't have to cross the Intent serialized, and translating
+ * Cielo's format stays in one place — the [CieloResponseParser].
  */
 internal class CieloPaymentContract(
     private val responseParser: CieloResponseParser,
@@ -21,7 +21,8 @@ internal class CieloPaymentContract(
     override fun createIntent(context: Context, input: String): Intent =
         Intent(context, PaymentActivity::class.java)
             .putExtra(PaymentActivity.EXTRA_PAYMENT_DEEP_LINK, input)
-            // Reforça o que o tema já pede: a tela-ponte não deve aparecer como uma transição.
+            // Reinforces what the theme already asks for: the bridge screen must not show up as a
+            // transition.
             .addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
 
     override fun parseResult(resultCode: Int, intent: Intent?): PaymentResult {
@@ -45,7 +46,7 @@ internal class CieloPaymentContract(
                 reason = "Não foi possível ler a resposta da Cielo.",
             )
 
-            // Inclui o caso de a tela ser encerrada pelo sistema sem devolver extra nenhum.
+            // Covers the case where the system finishes the screen without returning any extra.
             PaymentOutcome.ABANDONED, null -> PaymentResult.Failed(
                 error = PaymentError.ABANDONED,
                 reason = "Pagamento não concluído.",

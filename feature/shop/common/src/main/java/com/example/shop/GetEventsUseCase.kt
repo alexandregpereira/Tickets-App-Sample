@@ -5,10 +5,10 @@ import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * Devolve os eventos disponíveis para compra.
+ * Returns the events available for purchase.
  *
- * A lista é mockada: o case explicita que a construção de um backend de apoio não é avaliada. O
- * `delay` simula latência de rede para que os estados de carregamento da UI sejam exercitados.
+ * The list is mocked: this project is about the payment flow, not about building a backend. The
+ * `delay` simulates network latency so the UI's loading states are actually exercised.
  */
 internal class GetEventsUseCase {
 

@@ -32,10 +32,10 @@ import com.example.core.money.formatAsBrl
 import org.koin.androidx.compose.koinViewModel
 
 /**
- * Ponto de entrada público do módulo: a navegação do app só precisa saber para onde ir depois.
+ * The module's public entry point: app navigation only needs to know where to go next.
  *
- * O UiModel não aparece na assinatura de propósito — ele é `internal`, e é o que mantém o estado da
- * listagem sendo detalhe deste módulo.
+ * The UiModel is deliberately absent from the signature — it is `internal`, and that is what keeps
+ * the list's state a detail of this module.
  */
 @Composable
 fun EventListScreen(

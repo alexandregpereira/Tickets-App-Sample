@@ -1,14 +1,14 @@
 package com.example.payment.core
 
 /**
- * Desfecho de uma cobrança, já traduzido do vocabulário da adquirente.
+ * The outcome of a charge, already translated out of the acquirer's vocabulary.
  */
 sealed interface PaymentResult {
 
     data class Approved(
-        /** Identificador do pedido na adquirente. */
+        /** The order's identifier at the acquirer. */
         val orderId: String,
-        /** Referência de idempotência ecoada de volta, quando a adquirente a devolve. */
+        /** The idempotency reference echoed back, when the acquirer returns it. */
         val reference: String?,
         val paidAmountInCents: Long,
         val authorizationCode: String?,
@@ -17,9 +17,9 @@ sealed interface PaymentResult {
         val maskedCard: String?,
         val terminal: String?,
         /**
-         * Forma de pagamento efetivamente escolhida pelo portador — ex.: "CREDITO A VISTA",
-         * "PIX PAGAMENTO". Quem inicia o pagamento não a define, então este é o único lugar de
-         * onde ela pode vir.
+         * The payment method the cardholder actually chose — e.g. "CREDITO A VISTA",
+         * "PIX PAGAMENTO". The caller starting the payment doesn't set it, so this is the only
+         * place it can come from.
          */
         val paymentDescription: String?,
     ) : PaymentResult
@@ -33,17 +33,17 @@ enum class PaymentError {
     PAYMENT,
     AUTHENTICATION,
 
-    /** Não há app de pagamento instalado para atender à cobrança. */
+    /** There is no payment app installed to handle the charge. */
     APP_NOT_FOUND,
 
-    /** A resposta chegou, mas não foi possível interpretá-la. */
+    /** The response arrived, but could not be interpreted. */
     INVALID_RESPONSE,
 
     /**
-     * O usuário saiu do fluxo antes de qualquer desfecho — voltou sem pagar nem cancelar.
+     * The user left the flow before any outcome — they came back without paying or cancelling.
      *
-     * Diferente de [CANCELLED_BY_USER], que é uma recusa vinda da adquirente: aqui a cobrança nunca
-     * chegou a ser tentada, então não há o que registrar nem comprovante a exibir.
+     * Unlike [CANCELLED_BY_USER], which is a refusal coming from the acquirer: here the charge was
+     * never attempted, so there is nothing to record and no receipt to show.
      */
     ABANDONED,
 }

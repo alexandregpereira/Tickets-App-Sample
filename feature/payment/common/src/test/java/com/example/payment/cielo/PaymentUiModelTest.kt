@@ -8,7 +8,8 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * A regra mais delicada do fluxo: separar "a Cielo respondeu" de "o usuário voltou sem concluir".
+ * The most delicate rule in the flow: separating "Cielo replied" from "the user came back without
+ * finishing".
  */
 class PaymentUiModelTest {
 
@@ -33,7 +34,7 @@ class PaymentUiModelTest {
         val uiModel = PaymentUiModel(deepLink)
         uiModel.onScreenStart()
 
-        // Recriação da Activity: o UiModel sobrevive e não pode reabrir um pagamento em andamento.
+        // Activity recreation: the UiModel survives and must not reopen an in-flight payment.
         uiModel.onScreenStart()
         uiModel.onScreenStart()
 
@@ -48,12 +49,13 @@ class PaymentUiModelTest {
         val uiModel = PaymentUiModel(deepLink)
         uiModel.onScreenStart()
 
-        // A tela abriu o app de pagamento e confirmou o consumo.
+        // The screen opened the payment app and acknowledged consumption.
         uiModel.actions.test { assertEquals(PaymentUiAction.OpenDeepLink(deepLink), awaitItem()) }
         uiModel.onActionHandled()
 
-        // Girar a tela dentro da Cielo recria a Activity: o UiModel sobrevive e um coletor novo
-        // assina o flow. Sem a confirmação acima, o replay reabriria o app de pagamento.
+        // Rotating inside Cielo recreates the Activity: the UiModel survives and a new collector
+        // subscribes to the flow. Without the acknowledgment above, replay would reopen the payment
+        // app.
         uiModel.onScreenStart()
 
         uiModel.actions.test { expectNoEvents() }
@@ -64,7 +66,7 @@ class PaymentUiModelTest {
         val uiModel = PaymentUiModel(deepLink)
         uiModel.onScreenStart()
 
-        // Ainda não passamos por onPause: a Cielo nem apareceu.
+        // We haven't been through onPause yet: Cielo never even showed up.
         uiModel.onScreenResume()
         advanceUntilIdle()
 
@@ -97,7 +99,7 @@ class PaymentUiModelTest {
         uiModel.onScreenStart()
         uiModel.onScreenPause()
 
-        // O app de pagamento troca de tela: resumimos por um instante e saímos de cena de novo.
+        // The payment app switches screens: we resume for an instant and leave again.
         uiModel.onScreenResume()
         uiModel.onScreenPause()
         advanceUntilIdle()
@@ -131,7 +133,7 @@ class PaymentUiModelTest {
         uiModel.onScreenPause()
         uiModel.onDeepLinkResult("order://response?response=payload")
 
-        // O onResume vem logo depois do onNewIntent: não pode virar desistência.
+        // onResume comes right after onNewIntent: it must not become a dropout.
         uiModel.onScreenResume()
         advanceUntilIdle()
 

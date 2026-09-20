@@ -35,7 +35,7 @@ class CieloResponseParserTest {
 
     @Test
     fun `does not repeat the product name when the secondary already contains it`() {
-        // Formato devolvido pelo Emulador Cielo.
+        // The format returned by the Cielo Emulator.
         val json = APPROVED_ORDER_JSON
             .replace("\"secondaryProductName\": \"A VISTA\"", "\"secondaryProductName\": \"PIX PAGAMENTO\"")
             .replace("\"primaryProductName\": \"CREDITO\"", "\"primaryProductName\": \"PIX\"")
@@ -130,7 +130,7 @@ class CieloResponseParserTest {
     private fun encode(json: String) = codec.encode(json.toByteArray())
 
     private companion object {
-        /** Recorte do payload real documentado em `docs/recuperando-dados`. */
+        /** An excerpt of the real payload documented at `docs/recuperando-dados`. */
         val APPROVED_ORDER_JSON = """
             {
               "createdAt": "Jun 8, 2018 1:51:58 PM",

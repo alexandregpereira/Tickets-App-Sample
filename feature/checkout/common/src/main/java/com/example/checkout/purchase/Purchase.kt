@@ -1,11 +1,11 @@
 package com.example.checkout.purchase
 
 /**
- * Registro de uma tentativa de compra de ingressos e seu desfecho.
+ * A record of a ticket purchase attempt and its outcome.
  *
- * @param reference chave de idempotência do pedido. É gerada uma única vez por tentativa de compra,
- * enviada ao meio de pagamento e reutilizada em retentativas — é o que garante que um
- * reenvio da ação não vire uma segunda cobrança. Também serve de identificador da compra no app.
+ * @param reference the order's idempotency key. Generated once per purchase attempt, sent to the
+ * payment provider and reused across retries — it is what keeps a resent action from becoming a
+ * second charge. It also identifies the purchase within the app.
  */
 internal data class Purchase(
     val reference: String,
@@ -20,7 +20,7 @@ internal data class Purchase(
     val brand: String? = null,
     val maskedCard: String? = null,
     val terminal: String? = null,
-    /** Forma de pagamento escolhida pelo portador no terminal, conhecida só após a transação. */
+    /** Payment method chosen by the cardholder on the terminal, known only after the transaction. */
     val paymentDescription: String? = null,
     val failureReason: String? = null,
 ) {
@@ -28,12 +28,12 @@ internal data class Purchase(
 }
 
 internal enum class PurchaseStatus {
-    /** Pagamento iniciado, aguardando o retorno do meio de pagamento. */
+    /** Payment started, awaiting the payment provider's response. */
     PENDING,
     APPROVED,
     DENIED,
     CANCELLED;
 
-    /** Um desfecho definitivo não pode ser sobrescrito — base da idempotência do repositório. */
+    /** A final outcome cannot be overwritten — the basis of the repository's idempotency. */
     val isTerminal: Boolean get() = this != PENDING
 }

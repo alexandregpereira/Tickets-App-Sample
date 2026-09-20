@@ -1,11 +1,11 @@
 package com.example.payment.cielo
 
 /**
- * Abstração sobre Base64.
+ * An abstraction over Base64.
  *
- * `android.util.Base64` é uma classe stub em testes unitários de JVM (retorna 0 / lança
- * `RuntimeException`), então [CieloDeepLinkBuilder] e [CieloResponseParser] dependem desta
- * interface. Em produção usamos [AndroidBase64Codec]; nos testes, uma implementação baseada em
+ * `android.util.Base64` is a stub class in JVM unit tests (it returns 0 / throws
+ * `RuntimeException`), so [CieloDeepLinkBuilder] and [CieloResponseParser] depend on this interface
+ * instead. In production we use [AndroidBase64Codec]; in tests, an implementation backed by
  * `java.util.Base64`.
  */
 internal interface Base64Codec {

@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    // As rotas de navegação são @Serializable (navigation-compose type-safe).
+    // Navigation routes are @Serializable (type-safe navigation-compose).
     alias(libs.plugins.kotlin.serialization)
 }
 
@@ -40,7 +40,7 @@ android {
 }
 
 dependencies {
-    // Raiz de composição: é o único módulo que depende de todas as features.
+    // Composition root: the only module that depends on every feature.
     implementation(project(":feature:shop:common"))
     implementation(project(":feature:checkout:common"))
     implementation(project(":feature:payment:common"))

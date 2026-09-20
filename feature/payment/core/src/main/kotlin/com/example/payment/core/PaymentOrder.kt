@@ -1,14 +1,14 @@
 package com.example.payment.core
 
 /**
- * Pedido a ser cobrado.
+ * An order to be charged.
  *
- * Fala apenas de dinheiro e de identificadores: nada de ingressos, eventos ou compras. É esse
- * vocabulário reduzido que permite ao app de ingressos e ao meio de pagamento evoluírem separados.
+ * It speaks only of money and identifiers: no tickets, events or purchases. That reduced vocabulary
+ * is what lets the ticketing app and the payment provider evolve independently.
  *
- * @param reference chave de idempotência do pedido. Quem chama gera uma vez e **reutiliza** em
- * retentativas, para que a adquirente enxergue sempre o mesmo pedido lógico e não cobre duas vezes.
- * @param totalInCents valor total em centavos inteiros — pagamento não usa ponto flutuante.
+ * @param reference the order's idempotency key. The caller generates it once and **reuses** it on
+ * retries, so the acquirer always sees the same logical order and doesn't charge twice.
+ * @param totalInCents total amount in integer cents — payments don't use floating point.
  */
 data class PaymentOrder(
     val reference: String,

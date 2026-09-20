@@ -8,7 +8,7 @@ internal data class EventListUiState(
     val errorMessage: String? = null,
 )
 
-/** Efeitos únicos — navegação. Emitidos por SharedFlow para não serem reprocessados. */
+/** One-shot effects — navigation. Emitted through a SharedFlow so they aren't reprocessed. */
 internal sealed interface EventListUiAction {
     data class NavigateToCheckout(val eventId: String) : EventListUiAction
 }

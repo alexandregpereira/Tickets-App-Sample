@@ -7,10 +7,10 @@ import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.getByType
 
 /**
- * Biblioteca Android que expõe UI em Compose.
+ * An Android library that exposes Compose UI.
  *
- * Aplica o convention plugin base, liga o compilador do Compose e já traz o BOM + as dependências de
- * Compose que toda tela do app usa, para os módulos de feature não repetirem a mesma lista.
+ * Applies the base convention plugin, turns on the Compose compiler and brings in the BOM plus the
+ * Compose dependencies every screen uses, so feature modules don't repeat the same list.
  */
 class AndroidLibraryComposeConventionPlugin : Plugin<Project> {
 

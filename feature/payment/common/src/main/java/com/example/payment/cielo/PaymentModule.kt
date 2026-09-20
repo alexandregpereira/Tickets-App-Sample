@@ -6,13 +6,13 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
- * Única coisa pública deste módulo, junto do que ele liga em `payment:core`.
+ * The only public thing in this module, alongside what it binds in `payment:core`.
  *
- * Trocar a Cielo por outra adquirente é substituir este módulo Koin: nada fora daqui referencia um
- * tipo `Cielo*`, nem sabe que existe uma `PaymentActivity`.
+ * Swapping Cielo for another acquirer means replacing this Koin module: nothing outside it
+ * references a `Cielo*` type, or even knows a `PaymentActivity` exists.
  */
 val paymentModule = module {
-    // Credenciais mockadas: substituir pelos valores do Portal de Desenvolvedores da Cielo.
+    // Mocked credentials: replace with the values from the Cielo Developer Portal.
     single { CieloCredentials.MOCK }
 
     single<Base64Codec> { AndroidBase64Codec() }
@@ -20,8 +20,8 @@ val paymentModule = module {
     single { CieloResponseParser(get()) }
     single { CieloPaymentRequestFactory(get()) }
     single { CieloPaymentContract(get()) }
-    // createdAtStart: precisa existir antes da primeira Activity ser criada, senão perde os
-    // callbacks de ciclo de vida de que depende para religar pagamentos em andamento.
+    // createdAtStart: it has to exist before the first Activity is created, or it misses the
+    // lifecycle callbacks it relies on to reconnect in-flight payments.
     single(createdAtStart = true) { PaymentResultLauncher(androidApplication(), get()) }
 
     factory<StartPaymentUseCase> { CieloStartPaymentUseCase(get(), get(), get()) }

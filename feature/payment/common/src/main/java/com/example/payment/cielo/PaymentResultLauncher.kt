@@ -10,23 +10,23 @@ import kotlinx.coroutines.CompletableDeferred
 import java.lang.ref.WeakReference
 
 /**
- * Abre a [PaymentActivity] e aguarda o desfecho, **sobrevivendo à recriação da Activity**.
+ * Opens [PaymentActivity] and awaits the outcome, **surviving Activity recreation**.
  *
- * A Activity Result API exige um registro feito por uma Activity, mas quem pede o pagamento é um
- * UiModel, que não tem nenhuma. Rastrear a Activity aqui dentro mantém esse detalhe confinado ao
- * módulo de pagamento, sem obrigar a `MainActivity` a carregar encanação de pagamento.
+ * The Activity Result API requires a registration made by an Activity, but the one asking to pay is
+ * a UiModel, which has none. Tracking the Activity in here keeps that detail confined to the payment
+ * module, without forcing `MainActivity` to carry payment plumbing.
  *
- * O ponto sutil é a rotação: a Activity hospedeira é destruída, e com ela o callback registrado —
- * mas o `ActivityResultRegistry` **guarda o resultado pendente** no estado salvo, e entrega-o assim
- * que a mesma chave for registrada de novo. Por isso todo pagamento em andamento é revinculado a
- * cada Activity nova: quem estava esperando recebe o desfecho, em vez de esperar para sempre.
+ * The subtle part is rotation: the host Activity is destroyed, and with it the registered callback —
+ * but `ActivityResultRegistry` **keeps the pending result** in the saved state, and delivers it as
+ * soon as the same key is registered again. That is why every in-flight payment is rebound to each
+ * new Activity: whoever was waiting gets the outcome, instead of waiting forever.
  */
 internal class PaymentResultLauncher(
     application: Application,
     private val contract: CieloPaymentContract,
 ) {
 
-    /** Chave do pagamento → quem está aguardando o desfecho. */
+    /** Payment key → whoever is awaiting the outcome. */
     private val pending = mutableMapOf<String, CompletableDeferred<PaymentResult>>()
     private val launchers = mutableMapOf<String, MutableList<ActivityResultLauncher<String>>>()
     private val bindings = PaymentBindings()
@@ -39,8 +39,9 @@ internal class PaymentResultLauncher(
                 override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) =
                     onActivityAvailable(activity)
 
-                // Vinculamos em created **e** resumed: assim não dependemos de o registry já estar
-                // restaurado no primeiro dos dois. [PaymentBindings] evita o registro duplicado.
+                // We bind on created **and** resumed: that way we don't depend on the registry
+                // already being restored at the first of the two. [PaymentBindings] prevents the
+                // duplicate registration.
                 override fun onActivityResumed(activity: Activity) = onActivityAvailable(activity)
 
                 override fun onActivityDestroyed(activity: Activity) {
@@ -72,7 +73,7 @@ internal class PaymentResultLauncher(
     }
 
     private fun onActivityAvailable(activity: Activity) {
-        // A própria ponte não serve de âncora: ela é quem vai embora quando o pagamento termina.
+        // The bridge itself is no anchor: it is the one that goes away when the payment ends.
         if (activity !is ComponentActivity || activity is PaymentActivity) return
         currentActivity = WeakReference(activity)
         bind(activity, pending.keys.toSet())
@@ -80,8 +81,8 @@ internal class PaymentResultLauncher(
 
     private fun bind(activity: ComponentActivity, keys: Set<String>) {
         bindings.keysToBind(activity, keys).forEach { key ->
-            // Registrar a chave entrega na hora um resultado que o sistema tenha guardado — é o que
-            // faz o pagamento voltar depois de uma rotação.
+            // Registering the key immediately delivers a result the system may have stored — which
+            // is what brings the payment back after a rotation.
             val launcher = activity.activityResultRegistry.register(key, contract) { result ->
                 pending[key]?.complete(result)
             }

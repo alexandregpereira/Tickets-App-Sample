@@ -27,11 +27,11 @@ rootProject.name = "Cielo Smart"
 
 include(":app")
 
-// Módulos folha, sem dependência de feature alguma.
+// Leaf modules, depending on no feature at all.
 include(":ui")
 include(":core:money")
 
-// Cada feature se divide em `core` (contrato) e `common` (implementação).
+// Each feature splits into `core` (contract) and `common` (implementation).
 include(":feature:shop:core")
 include(":feature:shop:common")
 include(":feature:checkout:common")

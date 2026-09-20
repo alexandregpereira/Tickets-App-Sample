@@ -5,10 +5,10 @@ import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.kotlin.dsl.configure
 
 /**
- * Módulo Kotlin puro, sem dependência do toolchain Android.
+ * A pure Kotlin module, with no dependency on the Android toolchain.
  *
- * Usado por `:core:money`, que só formata números: manter esse tipo de código fora do Android deixa
- * explícito que ele não depende de framework e o torna reaproveitável em qualquer alvo.
+ * Used by `:core:money`, which only formats numbers: keeping that kind of code out of Android makes
+ * it explicit that it needs no framework, and keeps it reusable on any target.
  */
 class JvmLibraryConventionPlugin : Plugin<Project> {
 

@@ -6,7 +6,7 @@ internal data class CheckoutUiState(
     val isLoading: Boolean = true,
     val event: Event? = null,
     val quantity: Int = MIN_QUANTITY,
-    /** Verdadeiro entre abrir o app de pagamento e receber o desfecho. */
+    /** True between opening the payment app and receiving the outcome. */
     val isPaymentInFlight: Boolean = false,
     val errorMessage: String? = null,
 ) {
@@ -15,7 +15,7 @@ internal data class CheckoutUiState(
     val canDecreaseQuantity: Boolean = quantity > MIN_QUANTITY && !isPaymentInFlight
     val canIncreaseQuantity: Boolean = quantity < MAX_QUANTITY && !isPaymentInFlight
 
-    /** Gate visual da prevenção de cobrança duplicada; o UiModel repete a checagem. */
+    /** Visual gate for duplicate charge prevention; the UiModel repeats the check. */
     val canPay: Boolean = event != null && !isPaymentInFlight
 
     companion object {
@@ -26,8 +26,9 @@ internal data class CheckoutUiState(
 
 internal sealed interface CheckoutUiAction {
     /**
-     * @param isApproved permite à navegação decidir se o checkout ainda faz sentido na pilha: numa
-     * compra concluída não há para onde voltar, mas numa recusa o usuário precisa poder tentar de novo.
+     * @param isApproved lets navigation decide whether the checkout still belongs on the stack: on
+     * a completed purchase there is nothing to go back to, but on a decline the user must be able to
+     * try again.
      */
     data class NavigateToReceipt(
         val purchaseReference: String,

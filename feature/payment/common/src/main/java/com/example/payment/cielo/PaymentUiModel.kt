@@ -12,13 +12,13 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
 /**
- * Conduz a ida e volta até o app da Cielo Smart, para a [PaymentActivity].
+ * Drives the round trip to the Cielo Smart app on behalf of [PaymentActivity].
  *
- * A regra difícil aqui é distinguir **"a Cielo respondeu"** de **"o usuário voltou sem concluir"**,
- * já que a segunda não gera callback algum. A distinção é feita por ciclo de vida, não por tempo:
- * só concluímos desistência num `onResume` que venha **depois** de a tela ter sido pausada — ou
- * seja, depois de o app da Cielo realmente ter aparecido. Sem essa condição, o `onResume` que segue
- * o próprio `onCreate` encerraria o pagamento antes de ele começar.
+ * The hard rule here is telling **"Cielo replied"** apart from **"the user came back without
+ * finishing"**, since the latter produces no callback at all. The distinction is made through the
+ * lifecycle, not through timing: we only conclude a dropout on an `onResume` that comes **after**
+ * the screen has been paused — that is, after the Cielo app has actually shown up. Without that
+ * condition, the `onResume` following `onCreate` itself would end the payment before it began.
  */
 internal class PaymentUiModel(
     private val paymentDeepLink: String,
@@ -36,8 +36,8 @@ internal class PaymentUiModel(
     private var abandonJob: Job? = null
 
     /**
-     * O deep link é aberto uma única vez: em recriação da Activity o UiModel sobrevive, e relançar
-     * abriria a Cielo de novo para um pagamento que já está em andamento.
+     * The deep link is opened exactly once: the UiModel survives Activity recreation, and
+     * relaunching would open Cielo again for a payment that is already in flight.
      */
     fun onScreenStart() {
         if (hasLaunched) return
@@ -46,31 +46,31 @@ internal class PaymentUiModel(
     }
 
     /**
-     * A tela avisa que tratou a última ação, liberando o replay.
+     * The screen signals it has handled the last action, releasing the replay.
      *
-     * Sem isto, [hasLaunched] protegeria apenas a **emissão**, não a **entrega**: o `replay = 1`
-     * existe para um desfecho emitido sem coletor não se perder, mas ele também reentregaria o
-     * `OpenDeepLink` já consumido a cada nova Activity — e girar a tela dentro da Cielo abriria o
-     * app de pagamento uma segunda vez.
+     * Without this, [hasLaunched] would guard only the **emission**, not the **delivery**: the
+     * `replay = 1` exists so an outcome emitted with no collector isn't lost, but it would also
+     * redeliver the already-consumed `OpenDeepLink` to every new Activity — and rotating the screen
+     * inside Cielo would open the payment app a second time.
      */
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun onActionHandled() = _actions.resetReplayCache()
 
     fun onScreenPause() {
         if (hasLaunched) hasLeftScreen = true
-        // Voltamos a sair de cena: não era desistência.
+        // We left the foreground again: it wasn't a dropout.
         abandonJob?.cancel()
         abandonJob = null
     }
 
     /**
-     * Voltamos ao primeiro plano sem retorno — possivelmente o usuário desistiu.
+     * We are back in the foreground with no response — the user possibly backed out.
      *
-     * "Possivelmente" porque o app da Cielo troca de tela durante o fluxo (a tela de feedback dele,
-     * por exemplo), e nessas transições esta Activity chega a resumir por um instante antes de
-     * perder o foco de novo. Concluir desistência no primeiro `onResume` matava pagamentos que
-     * estavam dando certo. Por isso a desistência só vale se o primeiro plano **se sustentar**:
-     * qualquer `onPause` ou retorno da adquirente antes disso cancela a conclusão.
+     * "Possibly" because the Cielo app switches screens during the flow (its own feedback screen,
+     * for instance), and during those transitions this Activity briefly resumes before losing focus
+     * again. Concluding a dropout on the first `onResume` was killing payments that were going
+     * through. That is why a dropout only counts if the foreground **holds**: any `onPause` or
+     * response from the acquirer before that cancels the conclusion.
      */
     fun onScreenResume() {
         if (!hasLeftScreen || isFinished) return
@@ -81,14 +81,14 @@ internal class PaymentUiModel(
         }
     }
 
-    /** A Cielo respondeu no contrato `order://response`. */
+    /** Cielo replied on the `order://response` contract. */
     fun onDeepLinkResult(deepLink: String) {
         val response = CieloCallbackUri.encodedResponseOrNull(deepLink)
             ?: return finishWith(PaymentUiAction.FinishWithError(PaymentOutcome.INVALID_RESPONSE))
         finishWith(PaymentUiAction.FinishWithResponse(response))
     }
 
-    /** Não há app capaz de atender ao deep link de pagamento. */
+    /** There is no app able to handle the payment deep link. */
     fun onLaunchFailed() {
         finishWith(PaymentUiAction.FinishWithError(PaymentOutcome.APP_NOT_FOUND))
     }
@@ -103,9 +103,9 @@ internal class PaymentUiModel(
 
     private companion object {
         /**
-         * Tempo que a tela precisa ficar em primeiro plano, sem retorno, para valer desistência.
-         * Curto o bastante para não parecer travamento, longo o bastante para absorver as trocas de
-         * tela do app de pagamento.
+         * How long the screen must stay in the foreground, with no response, for a dropout to
+         * count. Short enough not to feel like a freeze, long enough to absorb the payment app's
+         * screen transitions.
          */
         val ABANDON_GRACE = 1.seconds
     }
@@ -117,7 +117,7 @@ internal sealed interface PaymentUiAction {
     data class FinishWithError(val outcome: PaymentOutcome) : PaymentUiAction
 }
 
-/** Desfechos que a própria [PaymentActivity] determina, sem resposta da adquirente. */
+/** Outcomes [PaymentActivity] decides on its own, without a response from the acquirer. */
 internal enum class PaymentOutcome {
     ABANDONED,
     APP_NOT_FOUND,

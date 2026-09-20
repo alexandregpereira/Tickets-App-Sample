@@ -9,17 +9,17 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * Interpreta o parâmetro `response` devolvido pela Cielo Smart em `order://response`.
+ * Interprets the `response` parameter Cielo Smart returns in `order://response`.
  *
- * O conteúdo é um JSON em Base64 que pode ser:
- * - o pedido pago (objeto Order com `payments[]`), ou
- * - um erro no formato `{"code": 1, "reason": "CANCELADO PELO USUÁRIO"}`.
+ * The content is Base64-encoded JSON that can be either:
+ * - the paid order (an Order object with `payments[]`), or
+ * - an error shaped like `{"code": 1, "reason": "CANCELADO PELO USUÁRIO"}`.
  *
- * Ver https://docs.cielo.com.br/cielo-smart/docs/recuperando-dados e
+ * See https://docs.cielo.com.br/cielo-smart/docs/recuperando-dados and
  * https://docs.cielo.com.br/cielo-smart/docs/codigos-de-erro
  *
- * Nunca lança: qualquer payload inesperado vira [PaymentError.INVALID_RESPONSE], porque uma
- * exceção aqui deixaria o usuário sem saber se foi cobrado.
+ * It never throws: any unexpected payload becomes [PaymentError.INVALID_RESPONSE], because an
+ * exception here would leave the user not knowing whether they were charged.
  */
 internal class CieloResponseParser(
     private val base64Codec: Base64Codec,
@@ -43,7 +43,7 @@ internal class CieloResponseParser(
         }
     }
 
-    /** `{"code": Int, "reason": String}` — só o payload de erro tem `code` na raiz. */
+    /** `{"code": Int, "reason": String}` — only the error payload has `code` at the root. */
     private fun JsonObject.parseError(): PaymentResult.Failed? {
         val code = this["code"]?.jsonPrimitive?.content?.toIntOrNull() ?: return null
         val error = code.toPaymentError()
@@ -60,7 +60,7 @@ internal class CieloResponseParser(
             )
 
         val paymentFields = payment["paymentFields"]?.jsonObject
-        // statusCode: 0 = Pix, 1 = autorizada, 2 = cancelada.
+        // statusCode: 0 = Pix, 1 = authorized, 2 = cancelled.
         val statusCode = paymentFields?.get("statusCode")?.jsonPrimitive?.content
         if (statusCode == CANCELLED_STATUS_CODE) {
             return PaymentResult.Failed(
@@ -83,15 +83,15 @@ internal class CieloResponseParser(
     }
 
     /**
-     * Monta a descrição da forma de pagamento escolhida no terminal.
+     * Builds the description of the payment method chosen on the terminal.
      *
-     * Prioriza `primaryProductName` + `secondaryProductName` ("CREDITO" + "A VISTA") em vez de
-     * `productName`: embora a documentação descreva `productName` como a "forma de pagamento
-     * compilada", o Emulador Cielo devolve nele um texto fixo de mock, enquanto os dois campos de
-     * produto refletem de fato a escolha do portador.
+     * It prefers `primaryProductName` + `secondaryProductName` ("CREDITO" + "A VISTA") over
+     * `productName`: although the documentation describes `productName` as the "compiled payment
+     * method", the Cielo Emulator returns a fixed mock string in it, while the two product fields do
+     * reflect the cardholder's actual choice.
      *
-     * Quando o nome secundário já começa pelo primário — "CREDITO" + "CREDITO VISTA", como no
-     * emulador — usa só o secundário, para não repetir a palavra.
+     * When the secondary name already starts with the primary one — "CREDITO" + "CREDITO VISTA", as
+     * in the emulator — only the secondary is used, to avoid repeating the word.
      */
     private fun JsonObject?.paymentDescription(): String? {
         val primary = this?.text("primaryProductName")
@@ -107,7 +107,7 @@ internal class CieloResponseParser(
     private fun JsonObject.text(key: String): String? =
         this[key]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
 
-    /** Códigos documentados em https://docs.cielo.com.br/cielo-smart/docs/codigos-de-erro */
+    /** Codes documented at https://docs.cielo.com.br/cielo-smart/docs/codigos-de-erro */
     private fun Int.toPaymentError(): PaymentError = when (this) {
         1 -> PaymentError.CANCELLED_BY_USER
         2 -> PaymentError.GENERIC

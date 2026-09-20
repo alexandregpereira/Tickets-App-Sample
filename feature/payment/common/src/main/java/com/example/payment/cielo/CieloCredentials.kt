@@ -1,14 +1,15 @@
 package com.example.payment.cielo
 
 /**
- * Credenciais de integração com a Cielo Smart.
+ * Credentials for the Cielo Smart integration.
  *
- * Obtidas no Portal de Desenvolvedores da Cielo (https://desenvolvedores.cielo.com.br/api-portal/)
- * ao cadastrar um aplicativo com a API "Cielo Smart - Order Manager".
+ * Issued by the Cielo Developer Portal (https://desenvolvedores.cielo.com.br/api-portal/) when
+ * registering an app with the "Cielo Smart - Order Manager" API.
  *
- * Os valores abaixo são MOCKS e devem ser substituídos pelas credenciais reais antes de
- * transacionar contra o emulador ou um terminal. Em um app de produção elas não ficariam
- * hardcoded no fonte: viriam de um backend ou, no mínimo, de `local.properties` via BuildConfig.
+ * The values below are MOCKS and should be replaced with real credentials before transacting
+ * against the emulator or a terminal. In a production app they would not be hardcoded in the
+ * source: they would come from a backend or, at the very least, from `local.properties` via
+ * BuildConfig.
  */
 internal data class CieloCredentials(
     val clientId: String,

@@ -53,8 +53,8 @@ class CieloDeepLinkBuilderTest {
     fun `omits the payment code so the shopper chooses on the cielo screen`() {
         val uri = builder.buildPaymentUri(request())
 
-        // `paymentCode` é opcional na documentação: sem ele, a Cielo Smart exibe a seleção da forma
-        // de pagamento no próprio terminal.
+        // `paymentCode` is optional per the documentation: without it, Cielo Smart shows the
+        // payment method selection on the terminal itself.
         assertNull(uri.decodedRequest()["paymentCode"])
     }
 

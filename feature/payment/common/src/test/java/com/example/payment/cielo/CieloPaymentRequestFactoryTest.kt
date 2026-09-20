@@ -5,7 +5,7 @@ import com.example.payment.core.PaymentOrder
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** A fronteira entre o vocabulário do app e o da adquirente. */
+/** The boundary between the app's vocabulary and the acquirer's. */
 class CieloPaymentRequestFactoryTest {
 
     private val factory = CieloPaymentRequestFactory(CieloCredentials.MOCK)
@@ -28,7 +28,7 @@ class CieloPaymentRequestFactoryTest {
         )
 
         assertEquals("ref-123", request.reference)
-        // A Cielo espera o total em centavos, como string.
+        // Cielo expects the total in cents, as a string.
         assertEquals("24000", request.value)
         assertEquals(CieloCredentials.MOCK.clientId, request.clientId)
         assertEquals(CieloCredentials.MOCK.accessToken, request.accessToken)

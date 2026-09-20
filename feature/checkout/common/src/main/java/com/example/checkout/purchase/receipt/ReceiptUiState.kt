@@ -4,6 +4,6 @@ import com.example.checkout.purchase.Purchase
 
 internal data class ReceiptUiState(
     val purchase: Purchase? = null,
-    /** A compra não foi encontrada — só acontece se o registro em memória tiver sido perdido. */
+    /** The purchase was not found — this only happens if the in-memory record was lost. */
     val isMissing: Boolean = false,
 )

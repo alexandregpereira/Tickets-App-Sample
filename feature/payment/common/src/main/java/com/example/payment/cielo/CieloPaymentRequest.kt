@@ -4,20 +4,20 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Payload de pagamento enviado à Cielo Smart via deep link.
+ * The payment payload sent to Cielo Smart over the deep link.
  *
- * Formato definido em https://docs.cielo.com.br/cielo-smart/docs/pagamento
- * Todos os valores monetários são inteiros em centavos.
+ * Format defined at https://docs.cielo.com.br/cielo-smart/docs/pagamento
+ * Every monetary value is an integer in cents.
  */
 @Serializable
 internal data class CieloPaymentRequest(
     val accessToken: String,
     @SerialName("clientID") val clientId: String,
-    /** Chave de idempotência do pedido: reenvios da mesma compra repetem esta referência. */
+    /** The order's idempotency key: resends of the same purchase repeat this reference. */
     val reference: String,
     val installments: Int = 0,
     val items: List<CieloPaymentItem>,
-    /** Valor total em centavos, enviado como string conforme a documentação. */
+    /** Total amount in cents, sent as a string as the documentation requires. */
     val value: String,
 )
 
@@ -27,6 +27,6 @@ internal data class CieloPaymentItem(
     val quantity: Int,
     val sku: String,
     val unitOfMeasure: String = "unidade",
-    /** Preço unitário em centavos. */
+    /** Unit price in cents. */
     val unitPrice: Long,
 )

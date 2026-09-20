@@ -1,13 +1,13 @@
 package com.example.payment.core
 
 /**
- * Cobra um pedido e **suspende até o desfecho**.
+ * Charges an order and **suspends until the outcome**.
  *
- * Uma chamada, um resultado: quem pede o pagamento não precisa saber que no meio do caminho existe
- * um app externo assumindo a tela, nem observar canal nenhum para descobrir como terminou.
+ * One call, one result: the caller doesn't need to know an external app takes over the screen along
+ * the way, nor observe any channel to find out how it ended.
  *
- * Nunca lança e nunca deixa a chamada sem resposta — desistência do usuário e ausência de app de
- * pagamento também voltam como [PaymentResult.Failed].
+ * It never throws and never leaves the call unanswered — a user backing out and a missing payment
+ * app also come back as [PaymentResult.Failed].
  */
 fun interface StartPaymentUseCase {
 

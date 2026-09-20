@@ -7,7 +7,7 @@ android {
 }
 
 dependencies {
-    // Só os contratos: o checkout não enxerga nem o catálogo nem a adquirente por dentro.
+    // Contracts only: the checkout sees neither the catalog nor the acquirer internals.
     implementation(project(":feature:payment:core"))
     implementation(project(":feature:shop:core"))
     implementation(project(":core:money"))

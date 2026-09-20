@@ -3,13 +3,13 @@ package com.example.payment.cielo
 import kotlinx.serialization.json.Json
 
 /**
- * Monta a URI de checkout da Cielo Smart.
+ * Builds the Cielo Smart checkout URI.
  *
- * A integração local não usa SDK: o app serializa o pedido em JSON, converte para Base64 e abre
- * `lio://payment?request=<base64>&urlCallback=order://response` com uma Intent ACTION_VIEW.
- * Ver https://docs.cielo.com.br/cielo-smart/docs/pagamento
+ * The local integration uses no SDK: the app serializes the order to JSON, encodes it as Base64 and
+ * opens `lio://payment?request=<base64>&urlCallback=order://response` with an ACTION_VIEW Intent.
+ * See https://docs.cielo.com.br/cielo-smart/docs/pagamento
  *
- * Classe pura (sem dependência de framework Android) para ser testável na JVM.
+ * A pure class (no Android framework dependency) so it stays testable on the JVM.
  */
 internal class CieloDeepLinkBuilder(
     private val base64Codec: Base64Codec,
@@ -25,17 +25,17 @@ internal class CieloDeepLinkBuilder(
         const val PAYMENT_URI = "lio://payment"
 
         /**
-         * Partes do contrato de resposta declarado no AndroidManifest da MainActivity: precisam ser
-         * idênticas ao `<data android:scheme="order" android:host="response" />` do manifest.
-         * [CieloPaymentResultSource] usa as duas para reconhecer o retorno.
+         * Parts of the response contract declared in the AndroidManifest: they must be identical
+         * to the manifest's `<data android:scheme="order" android:host="response" />`.
+         * [CieloPaymentResultSource] uses both to recognize the response.
          */
         const val CALLBACK_SCHEME = "order"
         const val CALLBACK_HOST = "response"
 
-        /** O mesmo contrato como URI, enviado no `urlCallback` da requisição de pagamento. */
+        /** The same contract as a URI, sent in the payment request's `urlCallback`. */
         const val CALLBACK_URI = "$CALLBACK_SCHEME://$CALLBACK_HOST"
 
-        /** Pacote do serviço de integração da Cielo, declarado em `<queries>` (Android 11+). */
+        /** Package of Cielo's integration service, declared in `<queries>` (Android 11+). */
         const val CIELO_URI_APP_PACKAGE = "com.ads.lio.uriappclient"
     }
 }

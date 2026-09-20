@@ -8,11 +8,11 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
 /**
- * Raiz de composição do app.
+ * Composition root of the app.
  *
- * É o único lugar que conhece todos os módulos ao mesmo tempo — e o único que menciona a Cielo por
- * nome. Trocar a adquirente significa trocar `paymentModule` por outra implementação de
- * `feature:payment:core` aqui.
+ * The only place that knows every module at once — and the only one that mentions Cielo by name.
+ * Switching acquirers means swapping `paymentModule` for another implementation of
+ * `feature:payment:core` right here.
  */
 class CieloTicketsApp : Application() {
 

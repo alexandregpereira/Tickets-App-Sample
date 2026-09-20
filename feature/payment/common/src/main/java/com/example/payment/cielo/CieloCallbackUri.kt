@@ -1,13 +1,13 @@
 package com.example.payment.cielo
 
 /**
- * Leitura do deep link de resposta `order://response?response=<base64>`.
+ * Parses the `order://response?response=<base64>` response deep link.
  *
- * Feito em Kotlin puro, sem `android.net.Uri`, porque `Uri` é stub em teste de JVM e esta é a
- * tradução mais delicada do fluxo — vale poder cobri-la com teste rápido.
+ * Written in pure Kotlin, without `android.net.Uri`, because `Uri` is a stub in JVM tests and this
+ * is the most delicate translation in the flow — being able to cover it with fast tests is worth it.
  *
- * Reproduz o comportamento do `Uri.getQueryParameter` no ponto que importa: `%XX` é decodificado,
- * mas `+` **não** vira espaço. O payload da Cielo é Base64, onde `+` é um caractere legítimo.
+ * It reproduces `Uri.getQueryParameter`'s behavior where it matters: `%XX` is decoded, but `+` does
+ * **not** become a space. Cielo's payload is Base64, where `+` is a legitimate character.
  */
 internal object CieloCallbackUri {
 
@@ -25,7 +25,7 @@ internal object CieloCallbackUri {
         return query.split('&')
             .firstNotNullOfOrNull { pair ->
                 val separator = pair.indexOf('=')
-                // O valor pode conter '=' (padding do Base64), então só o primeiro separa a chave.
+                // The value may contain '=' (Base64 padding), so only the first one splits the key.
                 if (separator < 0 || pair.substring(0, separator) != name) return@firstNotNullOfOrNull null
                 pair.substring(separator + 1).percentDecoded()
             }

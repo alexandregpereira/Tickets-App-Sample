@@ -21,7 +21,7 @@ data class CheckoutRoute(val eventId: String)
 data class ReceiptRoute(val purchaseReference: String)
 
 /**
- * Grafo de navegação do app — uma única Activity, três telas em Compose.
+ * The app's navigation graph — a single Activity, three Compose screens.
  */
 @Composable
 fun TicketsNavHost(navController: NavHostController = rememberNavController()) {
@@ -37,8 +37,8 @@ fun TicketsNavHost(navController: NavHostController = rememberNavController()) {
                 eventId = backStackEntry.toRoute<CheckoutRoute>().eventId,
                 onNavigateToReceipt = { reference, isApproved ->
                     navController.navigate(ReceiptRoute(reference)) {
-                        // Compra concluída: não há para onde voltar no checkout dela. Em recusa ou
-                        // cancelamento o checkout fica, para o usuário poder tentar de novo.
+                        // Purchase completed: there is nothing to go back to in its checkout. On a
+                        // decline or cancellation the checkout stays, so the user can try again.
                         if (isApproved) popUpTo<CheckoutRoute> { inclusive = true }
                     }
                 },

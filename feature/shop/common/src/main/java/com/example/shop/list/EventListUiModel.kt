@@ -13,10 +13,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * UiModel da listagem de eventos.
+ * The event list UiModel.
  *
- * A UI observa [state] e envia intenções chamando as funções públicas; efeitos únicos saem por
- * [actions].
+ * The UI observes [state] and sends intents by calling the public functions; one-shot effects go out
+ * through [actions].
  */
 internal class EventListUiModel(
     private val getEvents: GetEventsUseCase,
@@ -38,7 +38,7 @@ internal class EventListUiModel(
         _actions.tryEmit(EventListUiAction.NavigateToCheckout(eventId))
     }
 
-    /** A UI avisa que já tratou a última ação, liberando o replay. */
+    /** The UI signals it has handled the last action, releasing the replay. */
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun onActionHandled() = _actions.resetReplayCache()
 

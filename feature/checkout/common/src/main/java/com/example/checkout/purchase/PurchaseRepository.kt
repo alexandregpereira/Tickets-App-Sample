@@ -5,35 +5,35 @@ import com.example.payment.core.PaymentResult
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Guarda as compras em memória, indexadas pela `reference` (chave de idempotência).
+ * Keeps purchases in memory, indexed by `reference` (the idempotency key).
  *
- * Última linha de defesa contra cobrança/registro duplicado: [start] nunca cria duas compras para a
- * mesma referência e [recordResult] ignora escritas sobre uma compra que já tem desfecho definitivo.
- * Isso importa porque o desfecho chega como uma nova Intent, que o Android pode entregar
- * mais de uma vez (por exemplo, se a Activity for recriada com a mesma Intent).
+ * The last line of defense against a duplicate charge or record: [start] never creates two purchases
+ * for the same reference, and [recordResult] ignores writes over a purchase that already has a final
+ * outcome. That matters because the outcome arrives as a new Intent, which Android may deliver more
+ * than once (for instance, if the Activity is recreated with the same Intent).
  *
- * Trade-off assumido: sem persistência, as compras somem se o processo morrer. Ver README.
+ * Accepted trade-off: with no persistence, purchases vanish if the process dies. See the README.
  */
 internal class PurchaseRepository {
 
     private val purchases = ConcurrentHashMap<String, Purchase>()
 
     /**
-     * Registra a compra como [PurchaseStatus.PENDING].
+     * Records the purchase as [PurchaseStatus.PENDING].
      *
-     * Nunca sobrescreve um registro existente: cada tentativa de pagamento tem a sua própria
-     * `reference`, então uma colisão só aconteceria por chamada duplicada da mesma tentativa.
+     * Never overwrites an existing record: each payment attempt has its own `reference`, so a
+     * collision could only come from a duplicate call within the same attempt.
      */
     fun start(purchase: Purchase): Purchase =
         purchases.putIfAbsent(purchase.reference, purchase) ?: purchase
 
     /**
-     * Remove uma compra ainda pendente, quando a tentativa é abandonada antes de qualquer cobrança
-     * — o usuário saiu do app de pagamento sem concluir, ou o pagamento nem chegou a abrir.
+     * Removes a still-pending purchase when the attempt is abandoned before any charge — the user
+     * left the payment app without finishing, or the payment never even opened.
      *
-     * Compras com desfecho definitivo **nunca** são removidas: elas são o registro da venda.
+     * Purchases with a final outcome are **never** removed: they are the record of the sale.
      *
-     * @return `true` se havia uma compra pendente e ela foi descartada.
+     * @return `true` if there was a pending purchase and it was discarded.
      */
     fun discard(reference: String): Boolean {
         val current = purchases[reference] ?: return false
@@ -42,10 +42,10 @@ internal class PurchaseRepository {
     }
 
     /**
-     * Aplica o desfecho do pagamento à compra.
+     * Applies the payment outcome to the purchase.
      *
-     * @return a compra atualizada, ou `null` se a referência for desconhecida.
-     * Se a compra já estiver em estado terminal, devolve-a inalterada.
+     * @return the updated purchase, or `null` if the reference is unknown.
+     * If the purchase is already in a terminal state, returns it unchanged.
      */
     fun recordResult(reference: String, result: PaymentResult): Purchase? {
         val current = purchases[reference] ?: return null

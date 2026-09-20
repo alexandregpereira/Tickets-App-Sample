@@ -8,10 +8,10 @@ import com.example.cielo.ui.TicketsNavHost
 import com.example.ui.theme.TicketsTheme
 
 /**
- * Única Activity do app: hospeda todo o Compose.
+ * The app's single Activity: it hosts all of the Compose UI.
  *
- * Não sabe nada sobre pagamento. O retorno da adquirente chega a uma Activity própria dentro de
- * `feature:payment:common`, que devolve o resultado pela Activity Result API.
+ * It knows nothing about payments. The acquirer's response reaches a dedicated Activity inside
+ * `feature:payment:common`, which returns the result through the Activity Result API.
  */
 class MainActivity : ComponentActivity() {
 

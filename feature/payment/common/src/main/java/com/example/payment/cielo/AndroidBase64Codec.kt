@@ -3,10 +3,10 @@ package com.example.payment.cielo
 import android.util.Base64
 
 /**
- * Implementação de [Base64Codec] sobre `android.util.Base64`, disponível desde a API 8.
+ * A [Base64Codec] implementation on top of `android.util.Base64`, available since API 8.
  *
- * A codificação usa NO_WRAP porque o resultado vai dentro de uma query string de URI — quebras de
- * linha invalidariam o deep link.
+ * Encoding uses NO_WRAP because the result goes inside a URI query string — line breaks would
+ * invalidate the deep link.
  */
 internal class AndroidBase64Codec : Base64Codec {
 

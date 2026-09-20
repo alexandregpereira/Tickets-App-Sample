@@ -10,13 +10,13 @@ import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Coleta o SharedFlow de ações de um UiModel enquanto a tela está ao menos STARTED e confirma o
- * consumo em [onHandled].
+ * Collects a UiModel's action SharedFlow while the screen is at least STARTED and acknowledges
+ * consumption through [onHandled].
  *
- * O ack é necessário porque os UiModels publicam as ações com `replay = 1`: durante o pagamento a
- * app de pagamento fica em foreground e esta tela vai para STOPPED, então uma ação emitida nesse
- * intervalo seria perdida por um SharedFlow sem replay. Com replay, ela é entregue assim que a tela
- * volta; sem o ack, seria reentregue a cada nova coleta.
+ * The ack is needed because UiModels publish actions with `replay = 1`: during a payment the payment
+ * app is in the foreground and this screen goes to STOPPED, so an action emitted in that window
+ * would be lost by a SharedFlow without replay. With replay it is delivered as soon as the screen
+ * comes back; without the ack it would be redelivered on every new collection.
  */
 @Composable
 fun <T> CollectUiActions(

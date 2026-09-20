@@ -6,17 +6,18 @@ import com.example.payment.core.PaymentResult
 import com.example.payment.core.StartPaymentUseCase
 
 /**
- * Dublê do contrato `payment:core`.
+ * A stand-in for the `payment:core` contract.
  *
- * O checkout é testado sem nenhum vestígio de adquirente: o que importa é *qual pedido* foi enviado
- * e *como* a tela reage ao desfecho — o formato do deep link é assunto de `feature:payment:common`.
+ * The checkout is tested without a trace of an acquirer: what matters is *which order* was sent and
+ * *how* the screen reacts to the outcome — the deep link format is `feature:payment:common`'s
+ * business.
  */
 internal class FakeStartPaymentUseCase : StartPaymentUseCase {
 
-    /** Todo pedido recebido, na ordem. */
+    /** Every order received, in order. */
     val orders = mutableListOf<PaymentOrder>()
 
-    /** Desfecho devolvido na próxima chamada. */
+    /** The outcome returned on the next call. */
     var nextResult: PaymentResult = approvedResult()
 
     override suspend fun invoke(order: PaymentOrder): PaymentResult {

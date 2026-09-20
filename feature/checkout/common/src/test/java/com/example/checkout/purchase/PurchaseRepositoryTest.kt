@@ -32,7 +32,7 @@ class PurchaseRepositoryTest {
         assertEquals("140126", purchase.authorizationCode)
         assertEquals("order-1", purchase.paymentOrderId)
         assertEquals(24_000L, purchase.totalInCents)
-        // A forma de pagamento só é conhecida depois: quem escolhe é o portador, no terminal.
+        // The payment method is only known later: the cardholder picks it on the terminal.
         assertEquals("CREDITO A VISTA", purchase.paymentDescription)
     }
 
@@ -57,7 +57,7 @@ class PurchaseRepositoryTest {
         repository.start(pendingPurchase())
         repository.recordResult(REFERENCE, approved())
 
-        // Entrega repetida da mesma Intent de resposta: não pode virar uma segunda cobrança.
+        // Repeated delivery of the same response Intent: it must not become a second charge.
         val reapplied = repository.recordResult(REFERENCE, failed(PaymentError.PAYMENT))!!
 
         assertEquals(PurchaseStatus.APPROVED, reapplied.status)
@@ -79,7 +79,7 @@ class PurchaseRepositoryTest {
         repository.start(pendingPurchase())
         repository.recordResult(REFERENCE, approved())
 
-        // Descarte é para tentativa abandonada; uma venda registrada não pode sumir.
+        // Discarding is for an abandoned attempt; a recorded sale must not disappear.
         assertFalse(repository.discard(REFERENCE))
 
         assertEquals(PurchaseStatus.APPROVED, repository.find(REFERENCE)!!.status)

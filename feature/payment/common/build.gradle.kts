@@ -8,8 +8,8 @@ android {
 
     testOptions {
         unitTests {
-            // Permite instanciar tipos do framework usados nos testes (ex.: ActivityNotFoundException)
-            // sem que os stubs do android.jar lancem "Stub!".
+            // Lets tests instantiate framework types (e.g. ActivityNotFoundException) without the
+            // android.jar stubs throwing "Stub!".
             isReturnDefaultValues = true
         }
     }
@@ -21,7 +21,7 @@ dependencies {
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
     implementation(libs.kotlinx.serialization.json)
-    // PaymentActivity: ComponentActivity + Activity Result API + ViewModel. Nada de Compose.
+    // PaymentActivity: ComponentActivity + Activity Result API + ViewModel. No Compose.
     implementation(libs.androidx.activity)
     implementation(libs.androidx.lifecycle.viewmodel)
 

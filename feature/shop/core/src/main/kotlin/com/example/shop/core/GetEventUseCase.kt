@@ -1,10 +1,10 @@
 package com.example.shop.core
 
 /**
- * Recupera um único evento pelo id.
+ * Retrieves a single event by id.
  *
- * Contrato exposto pela loja para as demais features: o checkout precisa saber o que está vendendo,
- * mas não precisa — e não deve — enxergar de onde vem o catálogo.
+ * The contract the shop exposes to the other features: the checkout needs to know what it is
+ * selling, but it doesn't need — and shouldn't have — visibility into where the catalog comes from.
  */
 fun interface GetEventUseCase {
 

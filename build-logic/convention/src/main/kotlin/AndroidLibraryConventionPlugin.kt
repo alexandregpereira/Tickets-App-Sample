@@ -5,10 +5,10 @@ import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 
 /**
- * Configuração comum a todo módulo de biblioteca Android do projeto.
+ * Configuration shared by every Android library module in the project.
  *
- * Existe para que os sete módulos não repitam o mesmo bloco `android { }`: mudar a compileSdk ou a
- * versão do Java passa a ser uma edição em um lugar só.
+ * It exists so the seven modules don't repeat the same `android { }` block: changing the compileSdk
+ * or the Java version becomes a single edit.
  */
 class AndroidLibraryConventionPlugin : Plugin<Project> {
 

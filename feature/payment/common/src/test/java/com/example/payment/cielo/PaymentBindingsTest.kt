@@ -4,8 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * A regra que faz um pagamento sobreviver à recriação da Activity: revincular na instância nova,
- * sem nunca registrar a mesma chave duas vezes na mesma.
+ * The rule that makes a payment survive Activity recreation: rebind on the new instance, without
+ * ever registering the same key twice on the same one.
  */
 class PaymentBindingsTest {
 
@@ -38,8 +38,8 @@ class PaymentBindingsTest {
     fun `binds again on a recreated activity`() {
         bindings.keysToBind(activity, setOf("pagamento-1"))
 
-        // É isto que salva a rotação: a instância nova precisa registrar a chave de novo, para o
-        // registry entregar o resultado que ficou guardado.
+        // This is what saves rotation: the new instance has to register the key again, so the
+        // registry delivers the result it had stored.
         assertEquals(
             setOf("pagamento-1"),
             bindings.keysToBind(recreatedActivity, setOf("pagamento-1")),

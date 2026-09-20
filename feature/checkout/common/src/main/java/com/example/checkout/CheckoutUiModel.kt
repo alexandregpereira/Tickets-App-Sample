@@ -23,17 +23,18 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 /**
- * UiModel do checkout: escolhe a quantidade, dispara o pagamento e registra o desfecho.
+ * The checkout UiModel: picks the quantity, triggers the payment and records the outcome.
  *
- * Não conhece adquirente nenhuma — fala só com `payment:core`, e o pagamento é uma única chamada que
- * suspende até terminar. Trocar o meio de pagamento não muda uma linha deste arquivo.
+ * It knows no acquirer — it only talks to `payment:core`, and paying is a single call that suspends
+ * until it finishes. Switching payment providers doesn't change a line of this file.
  *
- * Prevenção de cobrança duplicada:
- * 1. [onPayClick] é ignorado enquanto houver um pagamento em andamento, então nunca há dois pedidos
- *    abertos ao mesmo tempo;
- * 2. cada tentativa tem a sua própria `reference` e a sua própria compra; uma tentativa que não
- *    chegou a cobrar é descartada por inteiro;
- * 3. o [PurchaseRepository] ignora escritas sobre uma compra já finalizada e se recusa a descartá-la.
+ * Duplicate charge prevention:
+ * 1. [onPayClick] is ignored while a payment is in flight, so there are never two open orders at
+ *    the same time;
+ * 2. each attempt has its own `reference` and its own purchase; an attempt that never charged is
+ *    discarded entirely;
+ * 3. the [PurchaseRepository] ignores writes over an already finalized purchase and refuses to
+ *    discard it.
  */
 internal class CheckoutUiModel(
     private val eventId: String,
@@ -45,12 +46,12 @@ internal class CheckoutUiModel(
     private val _state = MutableStateFlow(CheckoutUiState())
     val state: StateFlow<CheckoutUiState> = _state.asStateFlow()
 
-    // replay = 1: o pagamento acontece em outra tela, então a ação de navegação pode ser emitida com
-    // esta em STOPPED. A UI confirma o consumo em [onActionHandled] para não renavegar depois.
+    // replay = 1: payment happens on another screen, so the navigation action can be emitted while
+    // this one is STOPPED. The UI acknowledges it in [onActionHandled] to avoid renavigating later.
     private val _actions = MutableSharedFlow<CheckoutUiAction>(replay = 1)
     val actions: SharedFlow<CheckoutUiAction> = _actions.asSharedFlow()
 
-    /** Chave de idempotência da tentativa em curso. */
+    /** Idempotency key of the attempt in progress. */
     private var pendingReference: String? = null
 
     init {
@@ -67,24 +68,24 @@ internal class CheckoutUiModel(
 
     fun onErrorDismiss() = _state.update { it.copy(errorMessage = null) }
 
-    /** A UI avisa que já tratou a última ação, liberando o replay. */
+    /** The UI signals it has handled the last action, releasing the replay. */
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun onActionHandled() = _actions.resetReplayCache()
 
     fun onPayClick() {
         val current = _state.value
-        // Barreira contra double tap / reenvio da ação: um pagamento por vez.
+        // Barrier against a double tap / resent action: one payment at a time.
         if (!current.canPay) return
         val event = current.event ?: return
 
-        // Toda tentativa começa do zero: se a anterior foi abandonada, a compra dela é descartada
-        // aqui, para o pedido enviado refletir o que está na tela agora.
+        // Every attempt starts from scratch: if the previous one was abandoned, its purchase is
+        // discarded here, so the order we send reflects what is on screen now.
         abandonPendingPurchase()
         val reference = UUID.randomUUID().toString()
         pendingReference = reference
 
-        // A compra é gravada **antes** de abrir o pagamento: se o processo for morto enquanto o app
-        // de pagamento está em foreground, ainda existe um registro ligado à `reference`.
+        // The purchase is written **before** opening the payment: if the process is killed while
+        // the payment app is in the foreground, a record tied to the `reference` still exists.
         val purchase = purchaseRepository.start(
             Purchase(
                 reference = reference,
@@ -106,8 +107,8 @@ internal class CheckoutUiModel(
         _state.update { it.copy(isPaymentInFlight = false) }
 
         if (result is PaymentResult.Failed && result.error.isNotACharge) {
-            // A cobrança nem chegou a ser tentada: não há desfecho para registrar nem comprovante a
-            // exibir. Desistir é silencioso; a falta do app de pagamento precisa ser explicada.
+            // The charge was never even attempted: there is no outcome to record and no receipt to
+            // show. Backing out is silent; a missing payment app has to be explained.
             abandonPendingPurchase()
             if (result.error != PaymentError.ABANDONED) {
                 _state.update { it.copy(errorMessage = result.reason) }
@@ -118,8 +119,8 @@ internal class CheckoutUiModel(
         purchaseRepository.recordResult(reference, result)
         pendingReference = null
 
-        // Aprovada, negada ou cancelada, o desfecho é registrado e mostrado no comprovante — a
-        // recusa inclusive.
+        // Approved, denied or cancelled, the outcome is recorded and shown on the receipt — the
+        // decline included.
         _actions.emit(
             CheckoutUiAction.NavigateToReceipt(
                 purchaseReference = reference,
@@ -129,17 +130,17 @@ internal class CheckoutUiModel(
     }
 
     /**
-     * Erros em que a adquirente sequer chegou a ser acionada.
+     * Errors where the acquirer was never even reached.
      *
-     * `GENERIC` fica de fora de propósito: é uma falha real vinda da adquirente, que precisa virar
-     * compra recusada e comprovante como qualquer outra.
+     * `GENERIC` is deliberately left out: it is a real failure coming from the acquirer, and has to
+     * become a declined purchase and a receipt like any other.
      */
     private val PaymentError.isNotACharge: Boolean
         get() = this == PaymentError.ABANDONED || this == PaymentError.APP_NOT_FOUND
 
     /**
-     * Descarta a compra de uma tentativa que não se concretizou e zera a `reference`, para que a
-     * tentativa seguinte parta do que está na tela.
+     * Discards the purchase of an attempt that never went through and clears the `reference`, so
+     * the next attempt starts from what is on screen.
      */
     private fun abandonPendingPurchase() {
         pendingReference?.let(purchaseRepository::discard)

@@ -3,10 +3,10 @@ package com.example.payment.cielo
 import com.example.payment.core.PaymentOrder
 
 /**
- * Traduz um [PaymentOrder] genérico para a requisição da Cielo.
+ * Translates a generic [PaymentOrder] into Cielo's request.
  *
- * É a fronteira entre o vocabulário do app e o da adquirente, e está separada do use case para
- * continuar coberta por teste de JVM agora que iniciar o pagamento envolve Activity.
+ * It is the boundary between the app's vocabulary and the acquirer's, and it is kept separate from
+ * the use case so it stays covered by JVM tests now that starting a payment involves an Activity.
  */
 internal class CieloPaymentRequestFactory(
     private val credentials: CieloCredentials,

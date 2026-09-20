@@ -12,7 +12,7 @@ class CieloCallbackUriTest {
             "order://response?response=eyJjb2RlIjoxfQ==&responsecode=0"
         )
 
-        // O valor tem '=' de padding: só o primeiro '=' separa chave de valor.
+        // The value has '=' padding: only the first '=' separates key from value.
         assertEquals("eyJjb2RlIjoxfQ==", response)
     }
 

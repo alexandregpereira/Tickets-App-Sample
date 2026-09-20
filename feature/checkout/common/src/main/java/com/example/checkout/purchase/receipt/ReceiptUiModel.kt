@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** UiModel do comprovante: apenas lê a compra já registrada pela `reference`. */
+/** The receipt UiModel: it only reads the purchase already recorded under the `reference`. */
 internal class ReceiptUiModel(
     private val purchaseReference: String,
     private val purchaseRepository: PurchaseRepository,

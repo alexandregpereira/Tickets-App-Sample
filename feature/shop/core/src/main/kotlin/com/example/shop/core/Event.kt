@@ -1,10 +1,10 @@
 package com.example.shop.core
 
 /**
- * Evento disponível para venda de ingressos.
+ * An event with tickets available for sale.
  *
- * @param priceInCents preço unitário do ingresso em centavos — pagamento trabalha com inteiros em
- * centavos, então o app evita ponto flutuante em toda a cadeia de valores.
+ * @param priceInCents unit ticket price in cents — payments work in integer cents, so the app avoids
+ * floating point across the whole chain of values.
  */
 data class Event(
     val id: String,

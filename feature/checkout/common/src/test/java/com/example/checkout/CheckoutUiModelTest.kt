@@ -73,7 +73,7 @@ class CheckoutUiModelTest {
 
     @Test
     fun `registers the purchase as pending before starting the payment`() = runTest {
-        // O pagamento nunca termina: dá para observar o estado no meio do caminho.
+        // The payment never finishes: this lets us observe the state mid-flight.
         val payment = NeverReturningStartPayment()
         val uiModel = createUiModel(startPayment = payment).alsoLoaded()
 
@@ -106,7 +106,7 @@ class CheckoutUiModelTest {
             uiModel.onPayClick()
 
             val reference = startPayment.orders.single().reference
-            // isApproved = true faz a navegação remover o checkout da pilha.
+            // isApproved = true makes navigation drop the checkout from the stack.
             assertEquals(
                 CheckoutUiAction.NavigateToReceipt(reference, isApproved = true),
                 awaitItem(),
@@ -130,7 +130,7 @@ class CheckoutUiModelTest {
             uiModel.onPayClick()
 
             val reference = startPayment.orders.single().reference
-            // isApproved = false mantém o checkout na pilha, para o usuário tentar de novo.
+            // isApproved = false keeps the checkout on the stack, so the user can try again.
             assertEquals(
                 CheckoutUiAction.NavigateToReceipt(reference, isApproved = false),
                 awaitItem(),
@@ -149,8 +149,8 @@ class CheckoutUiModelTest {
 
         uiModel.onPayClick()
 
-        // Nada foi cobrado: sem registro, sem comprovante e sem mensagem de erro — o usuário só
-        // desistiu, e a tela volta a permitir uma nova tentativa.
+        // Nothing was charged: no record, no receipt and no error message — the user simply backed
+        // out, and the screen allows a new attempt again.
         assertNull(purchaseRepository.find(startPayment.orders.single().reference))
         assertNull(uiModel.state.value.errorMessage)
         assertFalse(uiModel.state.value.isPaymentInFlight)
@@ -177,7 +177,7 @@ class CheckoutUiModelTest {
         val uiModel = createUiModel().alsoLoaded()
         uiModel.onPayClick()
 
-        // O usuário desistiu e mudou de ideia sobre a quantidade.
+        // The user backed out and changed their mind about the quantity.
         uiModel.onIncreaseQuantityClick()
         startPayment.nextResult = approvedResult()
         uiModel.onPayClick()
@@ -188,7 +188,7 @@ class CheckoutUiModelTest {
         assertEquals(24_000L, second.totalInCents)
         assertEquals(2, second.items.single().quantity)
 
-        // Tentativa nova, pedido novo: a compra abandonada não pode continuar registrada.
+        // New attempt, new order: the abandoned purchase must not stay on record.
         assertNotEquals(first.reference, second.reference)
         assertNull(purchaseRepository.find(first.reference))
         assertEquals(2, purchaseRepository.find(second.reference)!!.quantity)
@@ -204,7 +204,7 @@ class CheckoutUiModelTest {
         purchaseRepository = purchaseRepository,
     )
 
-    /** Espera o carregamento inicial do evento terminar. */
+    /** Waits for the initial event load to finish. */
     private suspend fun CheckoutUiModel.alsoLoaded(): CheckoutUiModel = apply {
         state.test {
             skipItems(1)
@@ -212,7 +212,7 @@ class CheckoutUiModelTest {
         }
     }
 
-    /** Mantém o pagamento em andamento para sempre, expondo o estado intermediário. */
+    /** Keeps the payment in flight forever, exposing the intermediate state. */
     private class NeverReturningStartPayment : StartPaymentUseCase {
         val orders = mutableListOf<PaymentOrder>()
 
@@ -224,8 +224,8 @@ class CheckoutUiModelTest {
 
     private class FakeGetEventUseCase : GetEventUseCase {
         override suspend fun invoke(eventId: String): Event? {
-            // Suspende como suspenderia uma fonte de dados real, para o estado de carregamento
-            // existir de fato e poder ser observado.
+            // Suspends the way a real data source would, so the loading state actually exists and
+            // can be observed.
             delay(1)
             return Event(id = "evt-1", name = "Festival de Verão", priceInCents = 12_000)
                 .takeIf { it.id == eventId }

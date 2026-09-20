@@ -3,8 +3,8 @@ package com.example.payment.cielo
 import java.util.Base64
 
 /**
- * Implementação de [Base64Codec] para testes de JVM: `android.util.Base64` é um stub que lança
- * exceção fora do dispositivo.
+ * A [Base64Codec] implementation for JVM tests: `android.util.Base64` is a stub that throws off
+ * device.
  */
 class JvmBase64Codec : Base64Codec {
 
