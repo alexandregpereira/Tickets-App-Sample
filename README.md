@@ -1,30 +1,19 @@
 # App de Venda de Ingressos com Cielo Smart
 
-App Android de venda de ingressos para eventos locais, com pagamento pelo ecossistema
-**Cielo Smart / Cielo LIO** via integração local por deep link.
+Projeto para explorar na prática a integração de pagamento do ecossistema **Cielo Smart / Cielo LIO**
+em um app Android, usando a integração local por deep link.
 
-Fluxo: **listar eventos → escolher a quantidade → pagar na Cielo → registrar o
-desfecho → exibir o comprovante**.
+O app vende ingressos para eventos locais e percorre o fluxo completo: **listar eventos → escolher a
+quantidade → pagar na Cielo → registrar o desfecho → exibir o comprovante**.
 
 ## Como executar
 
-### Pré-requisitos
-
-- JDK 21
-- Android SDK com a plataforma 36 (`compileSdk = 36`, `minSdk = 24`)
-- Um dispositivo ou AVD
-
-### Rodando
-
-```bash
-./gradlew :app:assembleDebug
-```
+**Pré-requisitos:** JDK 21, Android SDK com a plataforma 36 (`compileSdk = 36`, `minSdk = 24`) e um
+dispositivo ou AVD.
 
 ```bash
 ./gradlew :app:installDebug
 ```
-
-Os testes unitários:
 
 ```bash
 ./gradlew testDebugUnitTest
@@ -32,18 +21,14 @@ Os testes unitários:
 
 ### Testando o pagamento com o Emulador Cielo
 
-O app **não** embute nenhum SDK da Cielo: ele conversa com o app de integração da Cielo instalado no
-mesmo dispositivo. Para transacionar sem um terminal físico:
+O app **não** embute nenhum SDK da Cielo: ele conversa com o app de integração instalado no mesmo
+dispositivo. Para transacionar sem um terminal físico, baixe o
+[Emulador Cielo](https://docs.cielo.com.br/cielo-smart/docs/baixando-o-emulador-cielo) e instale-o no
+mesmo AVD (suportado até o Android 10; não deve ser instalado em um terminal Smart real). Ao tocar em
+**Pagar**, o emulador abre com o valor preenchido e permite simular **Sucesso**, **Cancelado** ou
+**Erro**.
 
-1. Baixe o **Emulador Cielo** em
-   https://docs.cielo.com.br/cielo-smart/docs/baixando-o-emulador-cielo
-2. Instale-o no mesmo AVD do app (o emulador é suportado até o Android 10; não deve ser instalado em
-   um terminal Smart real).
-3. Abra o app, escolha um evento e a quantidade e toque em **Pagar**.
-   O Emulador Cielo abre com o valor já preenchido e permite simular **Sucesso**, **Cancelado** ou
-   **Erro**.
-
-Também é possível simular a resposta da Cielo sem o emulador, entregando a Intent de retorno na mão:
+Também dá para entregar a Intent de retorno na mão, sem o emulador:
 
 ```bash
 adb shell am start -a android.intent.action.VIEW -d "order://response?response=<json-em-base64>&responsecode=0" com.example.cielo
@@ -52,20 +37,18 @@ adb shell am start -a android.intent.action.VIEW -d "order://response?response=<
 ### Credenciais
 
 `clientID` e `accessToken` estão **mockados** em
-[CieloCredentials.kt](feature/payment/common/src/main/java/com/example/payment/cielo/CieloCredentials.kt)
-(`MOCK_CLIENT_ID` / `MOCK_ACCESS_TOKEN`). Substitua pelos valores reais obtidos no
-[Portal de Desenvolvedores da Cielo](https://desenvolvedores.cielo.com.br/api-portal/), cadastrando
-um aplicativo com a API **Cielo Smart - Order Manager**. O Emulador Cielo aceita os valores mockados.
+[CieloCredentials.kt](feature/payment/common/src/main/java/com/example/payment/cielo/CieloCredentials.kt).
+Para valer em produção, substitua pelos valores obtidos no
+[Portal de Desenvolvedores da Cielo](https://desenvolvedores.cielo.com.br/api-portal/) cadastrando um
+app com a API **Cielo Smart - Order Manager**. O Emulador Cielo aceita os valores mockados.
 
-## Como foi feita a integração com a Cielo Smart
+## A integração com a Cielo Smart
 
-A Cielo Smart oferece dois modelos de integração: **remota** (APIs do Order Manager, para PDV) e
-**local via deep link** (intents Android, para apps que rodam no próprio terminal). Este app usa a
-integração local — é a indicada para um app de venda no terminal e, segundo a própria documentação,
-dispensa SDK.
+A Cielo Smart oferece integração **remota** (APIs do Order Manager, para PDV) e **local via deep link**
+(intents Android, para apps que rodam no próprio terminal). Este app usa a local, que é a indicada
+para venda no terminal e dispensa SDK.
 
-**1. Requisição.** O pedido é serializado em JSON, convertido para Base64 e enviado numa Intent
-`ACTION_VIEW`:
+**1. Requisição.** O pedido vira JSON, é convertido para Base64 e enviado numa Intent `ACTION_VIEW`:
 
 ```
 lio://payment?request=<base64>&urlCallback=order://response
@@ -75,20 +58,18 @@ O JSON carrega `accessToken`, `clientID`, `reference`, `items[]` e `value` — t
 monetários em **centavos inteiros**. Montado por
 [CieloDeepLinkBuilder](feature/payment/common/src/main/java/com/example/payment/cielo/CieloDeepLinkBuilder.kt).
 
-**2. Manifest.** Três configurações obrigatórias, **todas** em
-[feature/payment/common](feature/payment/common/src/main/AndroidManifest.xml) e unidas ao manifesto
-do app pelo merge do AGP. O `:app` não declara nada de pagamento:
+**2. Manifest.** Três configurações obrigatórias, todas em
+[feature/payment/common](feature/payment/common/src/main/AndroidManifest.xml) e unidas ao manifesto do
+app pelo merge do AGP — o `:app` não declara nada de pagamento:
 
-- `<queries>` declarando o pacote da Cielo (obrigatório no Android 11+ para enxergar e chamar o app
-  de integração). Além do `com.ads.lio.uriappclient` da documentação, declaramos também o
-  `br.com.cielosmart.orderservice`, usado pelo Emulador Cielo, e uma consulta por intent no esquema
-  `lio://` para não depender do nome do pacote;
-- `<meta-data android:name="cs_integration_type" android:value="uri" />`, que identifica o app como
-  integração por URI;
+- `<queries>` declarando o pacote da Cielo (obrigatório no Android 11+ para enxergar o app de
+  integração). Além do `com.ads.lio.uriappclient` da documentação, declaramos o
+  `br.com.cielosmart.orderservice` usado pelo Emulador Cielo e uma consulta por intent no esquema
+  `lio://`, que não depende do nome do pacote;
+- `<meta-data android:name="cs_integration_type" android:value="uri" />`;
 - o **contrato de resposta**: um `intent-filter` de `ACTION_VIEW` para `order://response` na
-  `PaymentActivity`, idêntico ao `urlCallback` enviado na requisição. Os dois lados desse contrato
-  ficam no mesmo módulo (`CieloDeepLinkBuilder.CALLBACK_URI` e o manifesto), então não há como um
-  mudar sem o outro.
+  `PaymentActivity`, idêntico ao `urlCallback` enviado. Os dois lados moram no mesmo módulo
+  (`CieloDeepLinkBuilder.CALLBACK_URI` e o manifesto), então não há como um mudar sem o outro.
 
 **3. Resposta.** A Cielo devolve o resultado abrindo `order://response?response=<base64>` como uma
 **nova Intent**, entregue à
@@ -96,18 +77,13 @@ do app pelo merge do AGP. O `:app` não declara nada de pagamento:
 (`singleTop`, então chega em `onNewIntent` sem recriar nada). Ela encerra devolvendo o payload pela
 Activity Result API, e o
 [CieloResponseParser](feature/payment/common/src/main/java/com/example/payment/cielo/CieloResponseParser.kt)
-o traduz — é assim que `startPayment(order)` consegue simplesmente devolver um `PaymentResult`.
-
-O payload de sucesso é o pedido pago, com `payments[].authCode`, `cieloCode`, `mask`, `terminal` e
-`paymentFields.statusCode` (`0` Pix, `1` autorizada, `2` cancelada). O `CieloResponseParser` traduz
-esses campos para o vocabulário do contrato agnóstico — `authorizationCode`, `acquirerCode` e afins —
-de modo que nenhum nome da Cielo atravessa a fronteira do módulo. É de lá que sai também a
-**forma de pagamento escolhida no terminal**, exibida no comprovante: como o app não envia
-`paymentCode`, `paymentFields.primaryProductName` + `secondaryProductName` são a única fonte dessa
-informação. A documentação descreve `productName` como a forma "compilada", mas o Emulador Cielo
-devolve nesse campo um texto fixo de mock, então ele é só fallback. O de erro é
-`{"code": N, "reason": "..."}`, com `1` cancelado pelo usuário, `2` genérico, `3` erro de pagamento e
-`4` erro de autenticação.
+traduz os campos da Cielo (`payments[].authCode`, `cieloCode`, `mask`, `terminal`,
+`paymentFields.statusCode`) para o vocabulário agnóstico do contrato — nenhum nome da Cielo atravessa
+a fronteira do módulo. É de lá que sai também a **forma de pagamento escolhida no terminal**, exibida
+no comprovante: como o app não envia `paymentCode`, `primaryProductName` + `secondaryProductName` são
+a única fonte dessa informação (`productName` é só fallback, porque o Emulador devolve um mock fixo
+nele). O payload de erro é `{"code": N, "reason": "..."}`, com `1` cancelado pelo usuário, `2`
+genérico, `3` erro de pagamento e `4` erro de autenticação.
 
 Referências: [Pagamento](https://docs.cielo.com.br/cielo-smart/docs/pagamento) ·
 [Recuperando dados](https://docs.cielo.com.br/cielo-smart/docs/recuperando-dados) ·
@@ -118,62 +94,49 @@ Referências: [Pagamento](https://docs.cielo.com.br/cielo-smart/docs/pagamento) 
 
 ### MVI com UiModel + StateFlow
 
-Cada tela tem um `UiModel` (um `ViewModel`) que expõe:
+Cada tela tem um `UiModel` (um `ViewModel`) que expõe um `StateFlow<UiState>` com o estado completo e
+imutável e um `SharedFlow<UiAction>` para efeitos únicos. As intenções vão da UI para o UiModel por
+**funções públicas** (`onPayClick()`, `onIncreaseQuantityClick()`), sem um `sealed class Intent`
+intermediário. O `UiState` já traz os derivados prontos (`totalInCents`, `canPay`), o que mantém os
+Composables burros.
 
-- `StateFlow<UiState>` — estado completo e imutável da tela;
-- `SharedFlow<UiAction>` — efeitos únicos (navegação).
-
-As intenções vão da UI para o UiModel por **funções públicas** (`onPayClick()`,
-`onIncreaseQuantityClick()`), sem um `sealed class Intent` intermediário: menos cerimônia, mesma
-direção única de fluxo. O `UiState` é a única fonte de verdade da tela e já traz derivados prontos
-(`totalInCents`, `canPay`, `canIncreaseQuantity`), o que mantém os Composables burros.
-
-**Detalhe não óbvio, que só aparece rodando no app:** durante o pagamento o checkout vai para
-`STOPPED`, porque outra tela assume o primeiro plano. Uma ação emitida nesse intervalo em um
-`SharedFlow` sem replay se perderia — a compra seria registrada, mas a tela nunca navegaria para o
-comprovante. Por isso os `SharedFlow` de ações usam `replay = 1` e a UI confirma o consumo em
-`onActionHandled()`: a ação é entregue quando a tela volta, sem renavegar em recoletas posteriores.
+**Detalhe que só aparece rodando:** durante o pagamento o checkout vai para `STOPPED`, porque outra
+tela assume o primeiro plano, e uma ação emitida nesse intervalo num `SharedFlow` sem replay se
+perderia — a compra seria registrada, mas a tela nunca navegaria para o comprovante. Por isso as ações
+usam `replay = 1` e a UI confirma o consumo em `onActionHandled()`.
 
 ### Uma Activity para a UI, uma para o pagamento
 
-Toda a UI vive numa `MainActivity` só, com Compose e navegação — ela não sabe que pagamento existe.
+Toda a UI vive numa `MainActivity` só, com Compose e navegação — ela não sabe que pagamento existe. A
+exceção é a **`PaymentActivity`**, dentro de `feature:payment:common`: uma tela translúcida sem
+conteúdo que abre o app da Cielo, é dona do `intent-filter` de `order://response` e devolve o desfecho
+pela Activity Result API. É ela que permite ao resto do app tratar cobrança como uma chamada que
+suspende e devolve um resultado — sem barramento, sem `onNewIntent` espalhado, sem estado "aguardando
+retorno" vivendo no checkout.
 
-A exceção é a **`PaymentActivity`**, dentro de `feature:payment:common`: uma tela sem conteúdo
-(translúcida) que abre o app da Cielo, é dona do `intent-filter` de `order://response` e devolve o
-desfecho pela Activity Result API. Ter uma Activity própria é o que permite ao resto do app tratar
-cobrança como uma chamada que suspende e devolve um resultado — sem barramento, sem `onNewIntent`
-espalhado, sem estado "aguardando retorno" vivendo no checkout.
+A parte difícil é **distinguir "a adquirente respondeu" de "o usuário voltou sem concluir"**, porque a
+segunda não gera callback nenhum. A distinção é por ciclo de vida: desistência só vale num `onResume`
+que venha depois de a tela ter sido pausada **e** que se sustente por um instante. O app da Cielo troca
+de tela durante o fluxo, e nessas transições a `PaymentActivity` chega a resumir por um piscar —
+concluir desistência no primeiro `onResume` matava pagamentos aprovados.
 
-**A parte difícil é distinguir "a adquirente respondeu" de "o usuário voltou sem concluir"**, porque
-a segunda não gera callback nenhum. A distinção é por ciclo de vida: desistência só vale num
-`onResume` que venha **depois** de a tela ter sido pausada (ou seja, depois de a Cielo realmente ter
-aparecido) **e** que se sustente por um instante. Esse "se sustente" não é preciosismo — o app da
-Cielo troca de tela durante o fluxo (a tela de feedback dele), e nessas transições a `PaymentActivity`
-chega a resumir por um piscar antes de perder o foco de novo. Concluir desistência no primeiro
-`onResume` matava pagamentos aprovados, o que só apareceu rodando no emulador.
+O segundo detalhe é **sobreviver à recriação da Activity**. Girar o dispositivo dentro do app da Cielo
+recria a `MainActivity`: o `ActivityResultRegistry` guarda o resultado pendente, mas o *callback* morre
+com a instância antiga, e a corrotina ficaria suspensa para sempre. O `PaymentResultLauncher` revincula
+a chave de cada pagamento em andamento a toda Activity nova, e registrar a chave faz o registry
+entregar na hora o resultado guardado. A regra de "uma vez por instância, de novo a cada instância"
+mora em `PaymentBindings`, sem tipos do Android, coberta por testes de JVM.
 
-**O segundo detalhe é sobreviver à recriação da Activity.** Girar o dispositivo dentro do app da
-Cielo destrói e recria a `MainActivity`: o `ActivityResultRegistry` guarda o resultado pendente no
-estado salvo, mas o *callback* morre junto com a instância antiga — e como o `CheckoutUiModel`
-sobrevive, a corrotina ficava suspensa para sempre e a tela presa em "aguardando pagamento". O
-`PaymentResultLauncher` guarda os pagamentos em andamento e **revincula a chave de cada um a toda
-Activity nova**; registrar a chave faz o registry entregar na hora o resultado que estava guardado.
-A regra de "vincular uma vez por instância, de novo a cada instância" mora em `PaymentBindings`, sem
-tipos do Android, e é o que os testes de JVM cobrem.
-
-O `replay = 1` das ações tem uma armadilha própria nesse cenário, e ela custou um bug: proteger a
-**emissão** não basta, porque o replay reentrega a ação a cada coletor novo. Uma flag `hasLaunched`
-impedia emitir `OpenDeepLink` duas vezes, mas a `PaymentActivity` recriada assinava o flow e recebia
-o `OpenDeepLink` antigo — abrindo o app da Cielo **uma segunda vez**, que era o que ficava atrás ao
-voltar para o checkout. A correção é a mesma do checkout: a tela confirma o consumo em
+O `replay = 1` tem uma armadilha própria aqui: proteger a *emissão* não basta, porque o replay
+reentrega a ação a cada coletor novo — a `PaymentActivity` recriada recebia o `OpenDeepLink` antigo e
+abria o app da Cielo uma segunda vez. A correção é a mesma do checkout: confirmar o consumo em
 `onActionHandled()`, que limpa o replay.
 
 ### Arquitetura multi-módulo
 
-O app é dividido em módulos Gradle para que a fronteira com a Cielo seja **garantida pelo
-compilador**, e não por disciplina: `:feature:checkout:common` depende de `:feature:payment:core`,
-nunca de `:feature:payment:common`, então uma tentativa de importar `CieloResponseParser` no checkout
-não compila.
+O app é dividido em módulos Gradle para que a fronteira com a Cielo seja **garantida pelo compilador**,
+e não por disciplina: `:feature:checkout:common` depende de `:feature:payment:core`, nunca de
+`:feature:payment:common`, então importar `CieloResponseParser` no checkout não compila.
 
 ```
 :app  ──────────────► todos (apenas raiz de composição)
@@ -186,148 +149,105 @@ não compila.
  :ui  e  :core:money   ← folhas compartilhadas, usadas por várias features
 ```
 
-| Módulo | Tipo | Pacote | Conteúdo |
-| --- | --- | --- | --- |
-| `:app` | app Android | `com.example.cielo` | `MainActivity`, `TicketsNavHost`, `startKoin` |
-| `:ui` | lib Android | `com.example.ui` | tema e `CollectUiActions` |
-| `:core:money` | **Kotlin/JVM** | `com.example.core.money` | `formatAsBrl` |
-| `:feature:shop:core` | **Kotlin/JVM** | `com.example.shop.core` | `Event`, `GetEventUseCase` (interface) |
-| `:feature:shop:common` | lib Android | `com.example.shop` | catálogo mockado, listagem, `shopModule` |
-| `:feature:checkout:common` | lib Android | `com.example.checkout` | checkout, `Purchase`/`PurchaseRepository`, comprovante, `checkoutModule` |
-| `:feature:payment:core` | **Kotlin/JVM** | `com.example.payment.core` | contrato de pagamento agnóstico |
-| `:feature:payment:common` | lib Android | `com.example.payment.cielo` | tudo que é Cielo + implementações, `paymentModule` |
+| Módulo | Tipo | Conteúdo |
+| --- | --- | --- |
+| `:app` | app Android | `MainActivity`, `TicketsNavHost`, `startKoin` |
+| `:ui` | lib Android | tema e `CollectUiActions` |
+| `:core:money` | **Kotlin/JVM** | `formatAsBrl` |
+| `:feature:shop:core` | **Kotlin/JVM** | `Event`, `GetEventUseCase` (interface) |
+| `:feature:shop:common` | lib Android | catálogo mockado, listagem, `shopModule` |
+| `:feature:checkout:common` | lib Android | checkout, `Purchase`/`PurchaseRepository`, comprovante |
+| `:feature:payment:core` | **Kotlin/JVM** | contrato de pagamento agnóstico |
+| `:feature:payment:common` | lib Android | tudo que é Cielo + implementações, `paymentModule` |
 
-Os módulos `core` e `:core:money` são **Kotlin/JVM puro**, não bibliotecas Android. Eles carregam
-contratos e tipos de domínio, que não precisam de framework — e a escolha é auto-verificável: com o
-plugin JVM, um `import android.*` nesses módulos simplesmente não compila. Na prática também sai mais
-barato (geram JAR, sem manifesto, sem AAR, sem toolchain Android no caminho).
+Os módulos `core` são **Kotlin/JVM puro**: carregam contratos e tipos de domínio, que não precisam de
+framework, e a escolha é auto-verificável — com o plugin JVM, um `import android.*` ali não compila.
+Na prática também sai mais barato (geram JAR, sem manifesto, sem AAR).
 
-#### O contrato `payment:core`
+O contrato de pagamento cabe em três arquivos — `PaymentOrder`, `PaymentResult` e:
 
 ```kotlin
 fun interface StartPaymentUseCase { suspend operator fun invoke(order: PaymentOrder): PaymentResult }
 ```
 
-O módulo inteiro cabe em três arquivos: este contrato, o `PaymentOrder` que entra e o `PaymentResult`
-que sai. Decisões que valem explicar num code review:
-
-- **Uma chamada, um resultado.** Cobrar suspende até o desfecho, mesmo havendo um app externo no meio
-  do caminho. Quem chama não observa canal nenhum nem precisa saber que existe uma Activity ali —
-  quem sustenta essa ilusão é a `PaymentActivity`, descrita abaixo.
-- **`StartPaymentUseCase` não grava a compra.** Ele fala apenas de `PaymentOrder` — referência,
-  centavos e itens — e não conhece `Event`, `Purchase` nem `PurchaseRepository`. Quem registra a
-  compra é o `CheckoutUiModel`, que grava o `Purchase` como `PENDING` **antes** de chamar o
-  pagamento: se o processo for morto com o app de pagamento em foreground, resta um registro ligado
-  à `reference` para reconciliar o desfecho quando o retorno chegar.
+- **Uma chamada, um resultado.** Cobrar suspende até o desfecho, mesmo com um app externo no meio do
+  caminho. Quem chama não observa canal nenhum nem sabe que existe uma Activity ali.
+- **`StartPaymentUseCase` não grava a compra.** Ele fala só de `PaymentOrder` e não conhece `Event`,
+  `Purchase` nem `PurchaseRepository`. Quem registra é o `CheckoutUiModel`, que grava a compra como
+  `PENDING` **antes** de chamar o pagamento: se o processo morrer com a Cielo em foreground, resta um
+  registro ligado à `reference` para reconciliar.
 - **`PaymentError.ABANDONED` distingue "desistiu" de "foi recusado".** Voltar sem concluir não é um
-  cancelamento da adquirente: nada foi cobrado, então o checkout descarta a compra e apenas libera a
-  tela, sem comprovante. Um `CANCELLED_BY_USER` vindo da Cielo, esse sim, vira compra cancelada e
-  comprovante.
+  cancelamento da adquirente: nada foi cobrado, então o checkout descarta a compra e libera a tela sem
+  comprovante. Um `CANCELLED_BY_USER` vindo da Cielo, esse sim, vira compra cancelada e comprovante.
 
-#### Visibilidade
-
-Tudo que é usado apenas dentro do módulo é `internal`: **todas** as classes `Cielo*`, os `UiModel`s,
-os `UiState`s, `Purchase` e `PurchaseRepository`. A superfície pública de cada feature são o módulo
-Koin e as telas que o NavHost chama. As telas por isso não recebem o UiModel por parâmetro — ele é
-`internal` e é resolvido dentro do Composable.
-
-O Koin liga implementações `internal` a interfaces públicas
-(`factory<StartPaymentUseCase> { CieloStartPaymentUseCase(...) }`), e os testes de cada módulo
-enxergam os seus próprios `internal`.
-
-#### Convention plugins
-
-`build-logic/` é um build composto com três convention plugins: `cielosmart.android.library`,
-`cielosmart.android.library.compose` e `cielosmart.jvm.library`. Sem isso, os sete módulos repetiriam
-o mesmo bloco `android { }`; com isso, o build file de um módulo de feature tem cinco linhas e mudar
-a `compileSdk` é uma edição só.
+Tudo que é usado apenas dentro do módulo é `internal`: todas as classes `Cielo*`, os `UiModel`s, os
+`UiState`s, `Purchase` e `PurchaseRepository`. A superfície pública de cada feature são o módulo Koin e
+as telas que o NavHost chama — por isso as telas não recebem o UiModel por parâmetro, ele é resolvido
+dentro do Composable. `build-logic/` é um build composto com três convention plugins, para os sete
+módulos não repetirem o mesmo bloco `android { }`.
 
 ### Prevenção de cobrança duplicada
 
-Requisito explícito do case, resolvido em três camadas:
+1. **Trava de reentrada.** `onPayClick()` é ignorado enquanto houver pagamento em andamento e o botão
+   fica desabilitado. Double tap não abre dois checkouts.
+2. **Uma tentativa, uma `reference`, uma compra.** Cada tentativa gera o seu UUID, enviado à Cielo e
+   usado como identificador da compra. Uma tentativa abandonada é descartada por inteiro no início da
+   seguinte, então o pedido enviado reflete sempre o que está na tela.
+3. **Repositório idempotente.** `recordResult()` ignora escritas sobre uma compra que já tem desfecho
+   definitivo e `discard()` se recusa a remover uma: protege contra reentrega da mesma Intent pelo
+   Android e garante que uma venda registrada não some.
 
-1. **Trava de reentrada.** `onPayClick()` é ignorado enquanto `isPaymentInFlight` for verdadeiro, e o
-   botão fica desabilitado. Double tap não abre dois checkouts, e nunca há dois pedidos em aberto.
-2. **Uma tentativa, uma `reference`, uma compra.** Cada tentativa gera o seu próprio UUID, enviado à
-   Cielo e usado como identificador da compra. Uma tentativa abandonada é descartada por inteiro no
-   início da tentativa seguinte — assim o pedido enviado reflete sempre o que está na tela, e não um
-   carrinho que o usuário já mudou de ideia sobre.
-3. **Repositório idempotente.** `PurchaseRepository.recordResult()` ignora escritas sobre uma compra
-   que já tem desfecho definitivo, e `discard()` se recusa a remover uma: protege contra reentrega da
-   mesma Intent de resposta pelo Android e garante que uma venda registrada não some.
-
-A compra é gravada como `PENDING` **antes** de abrir o deep link: se o processo morrer com a Cielo em
-foreground, ainda existe um registro associado à `reference` para reconciliar.
-
-**Detalhe de ordenação que custou um bug:** o descarte da tentativa abandonada acontece no início do
-próximo `onPayClick()`, e não no momento em que o usuário volta. O Android pode entregar o `ON_RESUME`
-**antes** da Intent de retorno; zerar a `reference` ali fazia o desfecho legítimo que já estava a
-caminho ser descartado, e o comprovante nunca aparecia. No início de uma nova tentativa não há essa
-ambiguidade, porque `canPay` garante que nenhum pagamento está em andamento.
+**Ordenação que custou um bug:** o descarte da tentativa abandonada acontece no início do próximo
+`onPayClick()`, e não quando o usuário volta. O Android pode entregar o `ON_RESUME` **antes** da Intent
+de retorno; zerar a `reference` ali fazia o desfecho legítimo que já estava a caminho ser descartado.
 
 ### Tratamento de erros
 
-Nenhum caminho de erro deixa o usuário sem saber se foi cobrado:
-
 | Situação | Tratamento |
 | --- | --- |
-| Cielo Smart/Emulador não instalado | `ActivityNotFoundException` vira `PaymentError.APP_NOT_FOUND`; card de erro com a orientação de instalar. O checkout nem abriu, então não houve cobrança e a tentativa é descartada por inteiro |
-| Usuário volta sem concluir | `PaymentError.ABANDONED`: compra descartada, tela liberada, **sem** comprovante e sem mensagem — ele escolheu sair |
+| Cielo Smart/Emulador não instalado | `ActivityNotFoundException` vira `PaymentError.APP_NOT_FOUND`; card com a orientação de instalar. O checkout nem abriu, então a tentativa é descartada por inteiro |
+| Usuário volta sem concluir | `PaymentError.ABANDONED`: compra descartada, tela liberada, **sem** comprovante e sem mensagem |
 | Cancelado pelo usuário (`code` 1) | Compra registrada como `CANCELLED`, comprovante exibe o motivo |
 | Erro de pagamento/autenticação (`code` 3/4) | Compra registrada como `DENIED` com o motivo |
-| `response` ausente, Base64 inválido, JSON inválido | `CieloPaymentError.INVALID_RESPONSE`. O parser **nunca lança** — uma exceção aqui deixaria a compra em limbo |
+| `response` ausente, Base64 ou JSON inválido | `CieloPaymentError.INVALID_RESPONSE`. O parser **nunca lança** — uma exceção aqui deixaria a compra em limbo |
 | Pedido sem transação | `CieloPaymentError.PAYMENT` |
 
-## Bibliotecas externas e justificativas
+## Bibliotecas externas
 
 | Biblioteca | Por quê |
 | --- | --- |
 | **Jetpack Compose** (BOM) + Material 3 | UI declarativa; Material 3 é o recomendado pelas boas práticas da própria Cielo |
-| **Koin** | DI pedida no enunciado do exercício. Sem geração de código, configuração em um único módulo, e injeta parâmetros de runtime (`eventId`, `purchaseReference`) nos UiModels com `parametersOf` |
+| **Koin** | DI sem geração de código, configuração em um módulo por feature, e injeta parâmetros de runtime (`eventId`, `purchaseReference`) nos UiModels com `parametersOf` |
 | **Navigation Compose** (type-safe) | Três rotas em uma Activity, com argumentos tipados via `@Serializable` em vez de strings |
-| **kotlinx.serialization** | Serializa a requisição e navega o JSON de resposta da Cielo. Escolhida em vez de `org.json` porque funciona em testes unitários de JVM puros — `org.json` é stub fora do dispositivo |
+| **kotlinx.serialization** | Serializa a requisição e navega o JSON de resposta. Escolhida em vez de `org.json` porque funciona em testes de JVM puros — `org.json` é stub fora do dispositivo |
 | **Turbine** + **kotlinx-coroutines-test** | Testar `StateFlow`/`SharedFlow` dos UiModels de forma legível |
-| **Gradle `kotlin-dsl`** (build-logic) | Convention plugins próprios, para os sete módulos não repetirem a configuração de Android/Compose |
+| **Gradle `kotlin-dsl`** (build-logic) | Convention plugins próprios, para os módulos não repetirem a configuração de Android/Compose |
 
-Nenhuma biblioteca de mock (Mockito/MockK): as dependências são interfaces pequenas, então os fakes
-são escritos à mão. Menos mágica no teste, mais legibilidade no code review.
+Nenhuma biblioteca de mock: as dependências são interfaces pequenas, então os fakes são escritos à
+mão. Menos mágica no teste, mais legibilidade.
 
-## Uso de IA
+## Limitações conhecidas
 
-O case pede a documentação do harness do agente e do "como" a IA foi usada. Está em
-[docs/AI_USAGE.md](docs/AI_USAGE.md).
+- **Persistência em memória.** Um `ConcurrentHashMap` mantém o foco no fluxo de pagamento e na
+  idempotência, mas se o Android matar o processo enquanto a Cielo está em foreground as compras
+  pendentes se perdem. O `PurchaseRepository` já tem a interface certa para persistir sem tocar nos
+  UiModels.
+- **Serviço em primeiro plano não implementado.** A Cielo recomenda um foreground service durante o
+  pagamento, para o Android não matar o app de integração. A consequência está mitigada: a compra é
+  gravada antes de abrir o pagamento e o desfecho volta pela Activity Result API — entrega única, sem
+  janela em que um retorno se perca por falta de quem o escute.
+- **Sem testes instrumentados.** A lógica crítica (idempotência, protocolo, máquina de estados) é
+  testável na JVM. O preço é que o comportamento da `PaymentActivity` — ordem de ciclo de vida,
+  revinculação após recriação — só é garantido rodando no emulador.
+- **`MainDispatcherRule` duplicada** em `:feature:checkout:common` e `:feature:shop:common`. Para dois
+  arquivos idênticos de 15 linhas, a duplicação pareceu mais barata que um módulo `:core:testing`.
 
-## Trade-offs considerados
+## Próximos passos
 
-- **Deep link em vez do Order Manager remoto.** O modelo local é o adequado para um app que roda no
-  terminal e dispensa SDK e backend. Em troca, o app depende de ter a Cielo instalada no dispositivo
-  e não consegue consultar o pedido pelo servidor. O `<queries>` e o tratamento de
-  `ActivityNotFoundException` cobrem a ausência do app.
-- **Persistência em memória.** O enunciado deixa o banco livre e não avalia backend. Um
-  `ConcurrentHashMap` mantém o exercício focado no fluxo de pagamento e na idempotência. O custo é
-  real: se o Android matar o processo enquanto a Cielo está em foreground, as compras pendentes se
-  perdem. O `PurchaseRepository` já tem a interface certa para persistir com SQLite sem tocar nos UiModels.
-- **Serviço em primeiro plano não implementado.** A documentação da Cielo recomenda um foreground
-  service durante o pagamento, para o Android não matar o app de integração enquanto ele está em
-  background. Deixei de fora para não inflar o exercício, mas mitiguei a consequência: a compra é
-  gravada antes de abrir o pagamento, e o desfecho volta pela Activity Result API — entrega única,
-  sem janela em que um retorno possa se perder por falta de quem o escute.
-- **Sem testes instrumentados.** A lógica crítica (idempotência, protocolo, máquina de estados) está
-  toda em código testável na JVM, que roda rápido. O preço é que o comportamento da `PaymentActivity`
-  — ordem de ciclo de vida, revinculação após recriação — só é garantido rodando no emulador; o que
-  dá para isolar em regra pura (`PaymentBindings`, `CieloCallbackUri`) está coberto por teste.
-- **`MainDispatcherRule` duplicada.** A regra de 15 linhas existe em `:feature:checkout:common` e em
-  `:feature:shop:common`. A alternativa seria um módulo `:core:testing` só para ela — para dois
-  arquivos idênticos e pequenos, a duplicação me pareceu mais barata que mais um módulo. Se um
-  terceiro módulo precisar da regra, vale extrair.
-
-## O que faria com mais tempo
-
-1. **Persistência com SQLite** e uma tela de histórico de compras, resolvendo a perda de estado na
-   morte do processo.
-2. **Credenciais fora do código**, vindo de `local.properties`/BuildConfig ou de um backend, em vez
-   de constantes.
-3. **Um segundo `feature:payment:*`** — nem que fosse um mock — para provar na prática que o
-   contrato `payment:core` aguenta outra adquirente, e um teste de arquitetura (Konsist ou similar)
-   que falhe o build se algum módulo passar a importar `com.example.payment.cielo`.
+1. **Persistência com SQLite** e uma tela de histórico, resolvendo a perda de estado na morte do
+   processo.
+2. **Credenciais fora do código**, vindo de `local.properties`/BuildConfig ou de um backend.
+3. **Um segundo `feature:payment:*`** — nem que fosse um mock — para provar que o contrato
+   `payment:core` aguenta outra adquirente, e um teste de arquitetura que falhe o build se algum módulo
+   passar a importar `com.example.payment.cielo`.
 4. **Observabilidade** — Crashlytics e métricas de conversão do funil de pagamento.
